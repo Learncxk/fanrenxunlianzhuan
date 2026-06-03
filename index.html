@@ -542,7 +542,7 @@ body{
   <!-- ======== PAGE: 洞府 (Realm) ======== -->
   <section id="page-realm" class="page active">
     <div class="realm-header-card">
-      <div class="big-realm" id="realm-title">凡人之躯·初期</div>
+      <div class="big-realm" id="realm-title" onclick="showRealmTable()" style="cursor:pointer" title="点击查看完整境界表">凡人之躯·初期 <span style="font-size:14px;color:var(--text2)">📖</span></div>
       <div class="qi-today">今日获取灵力：<span id="today-qi-display">0</span></div>
       <div class="consecutive">闭关第 <span id="consecutive-display">0</span> 天</div>
     </div>
@@ -672,12 +672,16 @@ const STAGES = ['初期','中期','后期','圆满'];
 
 // 法器系统
 const EQUIPMENT_TYPES = [
-  { id:'barbell', name:'杠铃', icon:'🏋️', coeff:1.0, desc:'自由重量·全身稳定参与' },
-  { id:'dumbbell', name:'哑铃', icon:'💪', coeff:1.0, desc:'自由重量·单侧刺激更充分' },
-  { id:'bodyweight', name:'自重', icon:'🧘', coeff:1.0, desc:'自重训练·随时可练' },
-  { id:'smith', name:'史密斯机', icon:'🏗️', coeff:0.9, desc:'固定轨迹·稳定肌群参与减少' },
-  { id:'machine', name:'固定器械', icon:'⚙️', coeff:0.9, desc:'轨迹固定·适合孤立训练' },
-  { id:'custom', name:'自定义', icon:'🔧', coeff:1.0, desc:'自行命名法器' },
+  { id:'barbell', name:'杠铃', icon:'🏋️', coeff:1.0, desc:'自由杠铃·核心稳定全面激活' },
+  { id:'dumbbell', name:'哑铃', icon:'💪', coeff:1.0, desc:'自由哑铃·单侧重心控制更强' },
+  { id:'kettlebell', name:'壶铃', icon:'🏋️', coeff:1.0, desc:'壶铃·爆发力与核心训练利器' },
+  { id:'bodyweight', name:'自重', icon:'🧘', coeff:1.0, desc:'自重·无需器材随时可练' },
+  { id:'ezbar', name:'EZ杠', icon:'📐', coeff:1.0, desc:'曲杠·手腕友好适合孤立动作' },
+  { id:'smith', name:'史密斯机', icon:'🏗️', coeff:0.9, desc:'固定轨迹·稳定肌群参与约减少15%' },
+  { id:'cable', name:'龙门架', icon:'🪢', coeff:0.9, desc:'钢索滑轮·恒定张力适合孤立' },
+  { id:'machine', name:'固定器械', icon:'⚙️', coeff:0.9, desc:'轨迹固定·适合安全和孤立训练' },
+  { id:'band', name:'弹力带', icon:'〰️', coeff:0.85, desc:'弹性阻力·末端张力最大' },
+  { id:'custom', name:'自定义', icon:'🔧', coeff:1.0, desc:'点击自定义法器名称' },
 ];
 
 const DEFAULT_EQUIPMENT = {
@@ -1423,14 +1427,14 @@ function renderTrainingList(){
     });
 
     var equipId = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
-    var eqIcon = '🏋️', eqName = '杠铃';
-    EQUIPMENT_TYPES.forEach(function(et){ if(et.id===equipId){ eqIcon=et.icon; eqName=et.name; } });
+    var eqInfo = getEquipmentInfo(equipId);
+    var eqColor = eqInfo.coeff >= 1.0 ? 'var(--gold)' : (eqInfo.coeff >= 0.9 ? 'var(--warm)' : 'var(--text2)');
     
     card.innerHTML = `
       <div class="ec-header">
         <div class="ec-name"><span class="emoji">${ex.emoji}</span>${ex.alias}</div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <span class="ec-muscle" style="font-size:11px;cursor:pointer" onclick="cycleEquipment(${idx})" title="点击切换法器">${eqIcon}${eqName}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span onclick="showEquipmentPicker(${idx})" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;background:rgba(201,169,110,.12);border:1px solid rgba(201,169,110,.25);font-size:13px;font-weight:600;cursor:pointer;color:${eqColor}" title="点击切换法器">${eqInfo.icon} ${eqInfo.name}</span>
           <span class="ec-muscle">${ex.muscle}</span>
         </div>
         <button class="btn-remove-exercise" onclick="removeExerciseFromTraining(${idx})">✕</button>
@@ -1527,18 +1531,72 @@ function calcSetQi(exItem){
   return Math.round(total);
 }
 
-function cycleEquipment(exIdx){
+function showEquipmentPicker(exIdx){
   var item = currentTraining[exIdx];
   if(!item) return;
-  var ex = appData.exercises[item.exerciseIdx];
-  if(!ex) return;
-  var current = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
-  var ids = EQUIPMENT_TYPES.map(function(et){ return et.id; });
-  var pos = ids.indexOf(current);
-  var next = ids[(pos + 1) % ids.length];
-  item.equipment = next;
+  var existing = document.getElementById('eq-picker-overlay');
+  if(existing) existing.remove();
+  
+  var overlay = document.createElement('div');
+  overlay.id = 'eq-picker-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)';
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:16px;font-weight:600;color:var(--gold2)">🔧 选择法器</div><button onclick="closeEquipmentPicker()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button></div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  EQUIPMENT_TYPES.forEach(function(et){
+    var sel = item.equipment === et.id ? ' border-color:var(--gold);background:rgba(201,169,110,.12)' : '';
+    var color = et.coeff >= 1.0 ? 'var(--gold)' : (et.coeff >= 0.9 ? 'var(--warm)' : 'var(--text2)');
+    html += '<div onclick="selectEquipment('+exIdx+',\''+et.id+'\')" style="padding:10px;border:1px solid rgba(201,169,110,.2);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s'+sel+'">';
+    html += '<div style="font-size:22px;margin-bottom:4px">'+et.icon+'</div>';
+    html += '<div style="font-size:13px;font-weight:600;color:var(--text)">'+et.name+'</div>';
+    html += '<div style="font-size:10px;color:'+color+'">×'+et.coeff+'</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+}
+
+function closeEquipmentPicker(){
+  var el = document.getElementById('eq-picker-overlay');
+  if(el) el.remove();
+}
+
+function selectEquipment(exIdx, eqId){
+  var item = currentTraining[exIdx];
+  if(!item) return;
+  if(eqId === 'custom'){
+    var name = prompt('请输入自定义法器名称（如：牛角包、沙袋）：');
+    if(!name || !name.trim()) return;
+    // Store custom equipment name
+    var customId = 'custom_'+name.trim();
+    item.equipment = customId;
+    // Add to a custom equipment mapping if needed
+    if(!window._customEquipment) window._customEquipment = {};
+    window._customEquipment[customId] = { name: name.trim(), icon: '🔧', coeff: 1.0 };
+    // Also add to EQUIPMENT_TYPES-like rendering
+  } else {
+    item.equipment = eqId;
+  }
+  closeEquipmentPicker();
   renderTrainingList();
   updateTrainingQiDisplay();
+}
+
+// Update the equipment lookup to include custom equipment
+function getEquipmentInfo(eqId){
+  if(!eqId) return { icon:'🏋️', name:'杠铃', coeff:1.0 };
+  // Check standard types first
+  for(var i=0;i<EQUIPMENT_TYPES.length;i++){
+    if(EQUIPMENT_TYPES[i].id === eqId) return EQUIPMENT_TYPES[i];
+  }
+  // Check custom equipment
+  if(window._customEquipment && window._customEquipment[eqId]){
+    return window._customEquipment[eqId];
+  }
+  return { icon:'🔧', name:eqId.replace('custom_',''), coeff:1.0 };
 }
 
 function updateTrainingQiDisplay(){
@@ -1794,8 +1852,8 @@ function endTraining(){
     const ex = appData.exercises[item.exerciseIdx];
     if(!ex) return;
     var eqId = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
-    var eqCoef = 1.0;
-    EQUIPMENT_TYPES.forEach(function(et){ if(et.id === eqId) eqCoef = et.coeff; });
+    var eqInfo = getEquipmentInfo(eqId);
+    var eqCoef = eqInfo.coeff;
     // Ensure prByEquipment exists
     if(!ex.prByEquipment) ex.prByEquipment = {};
     if(!ex.prByEquipment[eqId]) ex.prByEquipment[eqId] = { maxWeight:0, maxReps:0, maxVolume:0 };
@@ -2036,6 +2094,34 @@ function showBreakthrough(realmIdx, stage){
 
 function closeBreakthrough(){
   document.getElementById('breakthrough-modal').classList.remove('active');
+}
+
+function showRealmTable(){
+  var existing = document.getElementById('realm-table-overlay');
+  if(existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'realm-table-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:17px;font-weight:700;color:var(--gold2);font-family:\'Noto Serif SC\',\'Songti SC\',serif">🏔️ 境界全览</div><button onclick="this.closest(\'#realm-table-overlay\').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button></div>';
+  var info = getCurrentRealmInfo();
+  REALMS.forEach(function(r, ri){
+    var rangeStart = r.threshold;
+    var rangeEnd = ri+1 < REALMS.length ? REALMS[ri+1].threshold-1 : '∞';
+    var isCurrent = ri === info.realmIdx;
+    html += '<div style="padding:10px;margin-bottom:6px;border-radius:10px;'+(isCurrent?'background:rgba(201,169,110,.1);border:1px solid var(--gold)':'border:1px solid rgba(255,255,255,.05)')+'">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:600;color:'+(isCurrent?'var(--gold2)':'var(--text)')+'">'+(ri+1)+'. '+r.name+'</span><span style="font-size:12px;color:var(--text2)">'+rangeStart+' ~ '+rangeEnd+' 灵力</span></div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px">';
+    STAGES.forEach(function(s, si){
+      var isCurStage = isCurrent && si === info.stage;
+      html += '<div style="text-align:center;padding:4px;border-radius:6px;font-size:12px;'+(isCurStage?'background:var(--gold);color:#1a1a2e;font-weight:700':'color:var(--text2)')+'">'+s+'</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 }
 
 // ===================================================================
