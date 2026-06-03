@@ -2282,19 +2282,26 @@ function toggleSkillDetail(idx){
 
 function renderSkillDetail(ex, exGlobalIdx){
   var info = EXERCISE_INFO[ex.name] || {desc:'暂无详细描述',tips:'',target:'',sci:''};
-  // Find training history
-  var history = [];
+  // Find complete training history grouped by session
+  var sessions = [];
   appData.sessions.forEach(function(s){
     s.exercises.forEach(function(item){
       if(item.exerciseIdx === exGlobalIdx || (appData.exercises[item.exerciseIdx] && appData.exercises[item.exerciseIdx].name === ex.name)){
-        item.sets.forEach(function(set){
-          history.push({date:s.date, reps:set.reps, weight:set.weight});
+        var eqId = item.equipment || 'barbell';
+        var eqName = '杠铃';
+        EQUIPMENT_TYPES.forEach(function(et){ if(et.id===eqId) eqName=et.name; });
+        sessions.push({
+          date: s.date,
+          totalQi: s.totalQi || 0,
+          equipment: eqName,
+          sets: item.sets.map(function(set){ return {reps:set.reps, weight:set.weight}; })
         });
       }
     });
   });
-  // Get latest 5 entries
-  var recent = history.slice(-5).reverse();
+  // Reverse so newest first
+  sessions.reverse();
+  var recent = sessions.slice(0, 5);
   
   var dhtml = '<div style="border-top:1px solid rgba(201,169,110,.1);padding:12px 0 0;margin-top:10px">';
   // Info section
@@ -2307,23 +2314,106 @@ function renderSkillDetail(ex, exGlobalIdx){
   }
   dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">🎯 目标肌群：'+info.target+'</div>';
   dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic">📚 '+info.sci+'</div>';
-  // PR history
+  // PR + stats
+  var totalVol = 0, totalSetsCount = 0;
+  sessions.forEach(function(s){ s.sets.forEach(function(set){ totalVol += (set.weight||0)*(set.reps||0); totalSetsCount++; }); });
   if(ex.prCount > 0){
-    dhtml += '<div style="font-size:12px;color:var(--gold-bright);margin-bottom:6px">🌟 共突破 '+ex.prCount+' 次个人纪录</div>';
+    dhtml += '<div style="font-size:12px;color:var(--gold-bright);margin-bottom:4px">🌟 共突破 '+ex.prCount+' 次个人纪录</div>';
   }
-  // Recent training history
+  if(totalSetsCount > 0){
+    dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px">📊 累计 '+totalSetsCount+' 组 · 总容量 '+totalVol+'</div>';
+  }
+  
+  // Recent sessions (last 5)
   if(recent.length > 0){
-    dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px">📋 最近训练记录</div>';
-    recent.forEach(function(r){
-      dhtml += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)">';
-      dhtml += '<span>'+r.date.slice(5)+'</span>';
-      dhtml += '<span>'+(r.weight||'自重')+'kg × '+r.reps+' 次</span></div>';
+    dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px;margin-top:10px">📋 最近训练</div>';
+    recent.forEach(function(session){
+      dhtml += '<div style="background:rgba(0,0,0,.12);border-radius:8px;padding:8px;margin-bottom:6px">';
+      dhtml += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">';
+      dhtml += '<span>📅 '+session.date.slice(5)+'</span>';
+      dhtml += '<span>🔧 '+session.equipment+'</span>';
+      dhtml += '</div>';
+      session.sets.forEach(function(set, si){
+        dhtml += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+        dhtml += '<span style="color:var(--text2);min-width:30px">第'+(si+1)+'组</span>';
+        dhtml += '<span>'+(set.weight||'自重')+'kg × '+set.reps+' 次</span>';
+        dhtml += '</div>';
+      });
+      dhtml += '</div>';
     });
+    if(sessions.length > 5){
+      dhtml += '<button onclick="showFullHistory(\''+ex.name+'\','+exGlobalIdx+')" style="width:100%;padding:8px;margin-top:4px;border:none;border-radius:8px;background:rgba(201,169,110,.12);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer">📜 查看全部 '+sessions.length+' 条记录</button>';
+    }
   } else {
-    dhtml += '<div style="font-size:12px;color:var(--text2);margin-top:4px">暂无训练记录，开始修炼后将在此显示详情</div>';
+    dhtml += '<div style="font-size:12px;color:var(--text2);margin-top:10px;text-align:center;padding:16px">暂无训练记录，开始修炼后将在此显示详情</div>';
   }
   dhtml += '</div>';
   return dhtml;
+}
+
+function showFullHistory(exName, exGlobalIdx){
+  var existing = document.getElementById('full-history-overlay');
+  if(existing) existing.remove();
+  
+  // Collect all sessions for this exercise
+  var sessions = [];
+  appData.sessions.forEach(function(s){
+    s.exercises.forEach(function(item){
+      if(item.exerciseIdx === exGlobalIdx || (appData.exercises[item.exerciseIdx] && appData.exercises[item.exerciseIdx].name === exName)){
+        var eqId = item.equipment || 'barbell';
+        var eqName = '杠铃';
+        EQUIPMENT_TYPES.forEach(function(et){ if(et.id===eqId) eqName=et.name; });
+        sessions.push({
+          date: s.date,
+          totalQi: s.totalQi || 0,
+          equipment: eqName,
+          sets: item.sets.map(function(set){ return {reps:set.reps, weight:set.weight}; })
+        });
+      }
+    });
+  });
+  sessions.reverse();
+  
+  var overlay = document.createElement('div');
+  overlay.id = 'full-history-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<div style="font-size:16px;font-weight:600;color:var(--gold2)">📋 '+exName+' · 全部记录</div>';
+  html += '<button onclick="this.closest(\'#full-history-overlay\').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button>';
+  html += '</div>';
+  
+  if(sessions.length === 0){
+    html += '<div style="text-align:center;padding:30px;color:var(--text2)">暂无记录</div>';
+  } else {
+    var totalSets = 0, totalVol = 0;
+    sessions.forEach(function(s){ s.sets.forEach(function(set){ totalSets++; totalVol += (set.weight||0)*(set.reps||0); }); });
+    html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">';
+    html += '<div style="font-size:12px;color:var(--text2)">共 <span style="color:var(--gold);font-weight:600">'+sessions.length+'</span> 次修炼</div>';
+    html += '<div style="font-size:12px;color:var(--text2)"><span style="color:var(--gold);font-weight:600">'+totalSets+'</span> 组</div>';
+    html += '<div style="font-size:12px;color:var(--text2)">总容量 <span style="color:var(--gold-bright);font-weight:600">'+totalVol+'</span></div>';
+    html += '</div>';
+    
+    sessions.forEach(function(session){
+      html += '<div style="background:rgba(0,0,0,.12);border-radius:8px;padding:10px;margin-bottom:8px">';
+      html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px">';
+      html += '<span>📅 '+session.date+'</span>';
+      html += '<span>🔧 '+session.equipment+'</span>';
+      html += '</div>';
+      session.sets.forEach(function(set, si){
+        html += '<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+        html += '<span style="color:var(--text2)">第'+(si+1)+'组</span>';
+        html += '<span>'+(set.weight||'自重')+'kg × '+set.reps+' 次</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+  }
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 }
 
 function createCustomExercise(){
