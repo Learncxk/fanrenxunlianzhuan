@@ -849,14 +849,15 @@ function loadData(){
     if(raw) appData = JSON.parse(raw);
     else appData = null;
   }catch(e){ appData = null; }
-  // Data migration: ensure NPC data has new fields + fixed qi
+  // Data migration: ensure NPC data has new fields + fixed qi + new names
   if(appData && appData.npcLeaderboard){
     appData.npcLeaderboard.forEach(function(npc, i){
       var src = NPC_DATA[i] || {};
-      if(!npc.npcTitle) npc.npcTitle = src.title || '散修';
-      if(!npc.desc) npc.desc = src.desc || '一位修仙路上的行者。';
-      if(!npc.quote) npc.quote = src.quote || '「……继续努力。」';
-      // Use fixed qi from NPC_DATA if available
+      npc.name = src.name || npc.name;           // Overwrite with new name
+      npc.npcTitle = src.title || npc.npcTitle || '散修';
+      npc.desc = src.desc || npc.desc || '一位修仙路上的行者。';
+      npc.quote = src.quote || npc.quote || '「……继续努力。」';
+      // Use fixed qi from NPC_DATA
       if(src.qi !== undefined) npc.qi = src.qi;
     });
     saveData();
