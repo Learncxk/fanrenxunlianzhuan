@@ -1520,9 +1520,10 @@ function updateSet(el){
 function calcSetQi(exItem){
   const ex = appData.exercises[exItem.exerciseIdx];
   if(!ex) return 0;
-  // Get equipment coefficient
-  var eqCoef = 1.0;
-  EQUIPMENT_TYPES.forEach(function(et){ if(et.id === (exItem.equipment || DEFAULT_EQUIPMENT[ex.name])) eqCoef = et.coeff; });
+  // Get equipment coefficient (supports custom equipment)
+  var eqId = exItem.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
+  var eqInfo = getEquipmentInfo(eqId);
+  var eqCoef = eqInfo.coeff;
   let total = 0;
   exItem.sets.forEach(function(set){
     const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05 * eqCoef;
