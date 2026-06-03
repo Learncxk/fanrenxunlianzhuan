@@ -2459,6 +2459,10 @@ const ROUTES = [
   { id:'beginner', name:'凡骨淬体法', desc:'纯新手全身训练', freq:'每周 3 天', info:'每次练全部基础动作，适合刚踏入修行之门的道友' },
   { id:'ppl', name:'三脉同修法', desc:'推/拉/腿三分化', freq:'每周 4-5 天', info:'经典推拉腿分化，适合初中级道友稳扎稳打' },
   { id:'upperlower', name:'五行轮转法', desc:'上下肢分化', freq:'每周 4 天', info:'上下肢交替训练，适合中级道友全面提升' },
+  { id:'stronglifts', name:'5×5 力量筑基法', desc:'线性增力·经典力量举', freq:'每周 3 天', info:'StrongLifts 5×5 原型，每次训练 3 个主项，重量逐次递增' },
+  { id:'phul', name:'四象炼体法', desc:'力与量兼备·PHUL分化', freq:'每周 4 天', info:'前半周练力量（3-5次），后半周练肌肥大（8-12次），力量与围度兼顾' },
+  { id:'bro_split', name:'五关淬体法', desc:'传统五分化·健美精雕', freq:'每周 5 天', info:'每个肌群单独一天，高容量雕刻，适合有经验的练家子' },
+  { id:'lean_physique', name:'薄肌塑形法', desc:'低体脂·线条·控制力', freq:'每周 3-4 天', info:'中高次数全身训练，追求清晰线条而非绝对围度，配合饮食效果更佳' },
   { id:'custom', name:'自创功法', desc:'完全自定义训练日', freq:'自由', info:'随心所欲，编写你自己的修炼法门' },
 ];
 
@@ -2512,6 +2516,76 @@ const ROUTE_PLANS = {
     },
     weekFreq: '每周 4 天（周一上肢/周二下肢/周四上肢/周五下肢）',
   },
+  // 5×5 力量筑基法 — StrongLifts 5×5 原型
+  stronglifts: {
+    days: ['5×5-A','5×5-B'],
+    getDay: function(weekIndex){ return this.days[weekIndex % 2]; },
+    exercises: {
+      '5×5-A': ['深蹲','卧推','划船'],
+      '5×5-B': ['深蹲','肩推','硬拉'],
+    },
+    repRanges: {
+      '深蹲':'5×5 组（强线性递增）','卧推':'5×5 组','划船':'5×5 组',
+      '肩推':'5×5 组','硬拉':'1×5 组（神经负荷大，仅1组）',
+    },
+    weekFreq: '每周 3 天（A/B/A「或」B/A/B）',
+    detail: '以 StrongLifts 5×5 为原型，每次仅 3 个复合动作，专注力量线性增长。每次成功完成全部 5×5 后，下次该动作重量增加 2.5kg（上肢）/ 5kg（下肢）。硬拉仅 1×5——因为硬拉对中枢神经系统负荷极大，多做有害恢复。若连续 3 次无法完成 5×5，该动作重量回退 10% 重新突破。',
+  },
+  // 四象炼体法 — PHUL（Power Hypertrophy Upper Lower）
+  phul: {
+    days: ['上肢力量','下肢力量','上肢肌肥大','下肢肌肥大'],
+    getDay: function(weekIndex){ return this.days[weekIndex % 4]; },
+    exercises: {
+      '上肢力量': ['卧推','肩推','划船'],
+      '下肢力量': ['深蹲','硬拉','臀桥'],
+      '上肢肌肥大': ['卧推','俯卧撑','哑铃弯举','划船'],
+      '下肢肌肥大': ['深蹲','硬拉','卷腹'],
+    },
+    repRanges: {
+      '卧推':'力量日3-5次 / 肥大日8-12次','肩推':'3-5次','划船':'3-5次 / 8-12次',
+      '深蹲':'3-5次 / 8-12次','硬拉':'3-5次 / 8-12次','臀桥':'8-12次',
+      '俯卧撑':'8-12次','哑铃弯举':'8-12次','卷腹':'15-20次',
+    },
+    weekFreq: '每周 4 天（力量·力量·休息·肥大·肥大·休息·休息）',
+    detail: 'PHUL 分化法：前半周（力量日）用大重量低次数（3-5RM）夯实神经适配与绝对力量；后半周（肌肥大日）用中等重量高次数（8-12RM）积累代谢 Stress 促进肌肉增长。力量与围度兼得，适合中级以上训练者。',
+  },
+  // 五关淬体法 — 传统健美五分化
+  bro_split: {
+    days: ['胸日','背日','肩日','腿日','臂日'],
+    getDay: function(weekIndex){ return this.days[weekIndex % 5]; },
+    exercises: {
+      '胸日': ['卧推','俯卧撑'],
+      '背日': ['引体向上','划船'],
+      '肩日': ['肩推'],
+      '腿日': ['深蹲','硬拉','臀桥'],
+      '臂日': ['哑铃弯举','卷腹'],
+    },
+    repRanges: {
+      '卧推':'8-12次 × 4组','俯卧撑':'力竭 × 3组',
+      '引体向上':'8-12次 × 4组','划船':'8-12次 × 4组',
+      '肩推':'10-15次 × 4组',
+      '深蹲':'8-12次 × 4组','硬拉':'8-12次 × 3组','臀桥':'12-15次 × 4组',
+      '哑铃弯举':'10-15次 × 4组','卷腹':'15-20次 × 4组',
+    },
+    weekFreq: '每周 5 天（胸·背·肩·腿·臂·休·休）',
+    detail: '经典健美五分化，每天专注一个肌群，用 4-6 个动作从不同角度充分刺激。训练容量高、频率低，每次训练间隔约 7 天，确保每个肌群有充足的超量恢复时间。适合有 1 年以上训练经验、追求肌肉形态和分离度的道友。',
+  },
+  // 薄肌塑形法 — 高频全身·低体脂线条
+  lean_physique: {
+    days: ['全身A','全身B','全身A','全身B'],
+    getDay: function(weekIndex){ return this.days[weekIndex % 4]; },
+    exercises: {
+      '全身A': ['深蹲','俯卧撑','引体向上','卷腹','肩推'],
+      '全身B': ['臀桥','划船','卷腹','深蹲'],
+    },
+    repRanges: {
+      '深蹲':'12-15次 × 3组','俯卧撑':'12-15次 × 3组','引体向上':'8-12次 × 3组',
+      '卷腹':'15-20次 × 3组','肩推':'12-15次 × 3组',
+      '臀桥':'15-20次 × 3组','划船':'12-15次 × 3组',
+    },
+    weekFreq: '每周 3-4 天，每次全身训练',
+    detail: '薄肌塑形法——追求适中的肌肉量与低体脂率，线条清晰但不粗壮。中高次数（10-15次）、组间休息 60-90 秒，强调肌肉感受而非绝对重量。\n\n⚠️ 重要提示：肌显于练，形定于食。薄肌之效，饮食调控占其大半，此功法仅管修炼，不管炉灶（饮食）。欲成薄肌，在练更在控体脂率。',
+  },
   custom: null,
 };
 
@@ -2557,14 +2631,69 @@ function renderRoutes(){
   html += '<p style="font-size:13px;color:var(--text2);margin-bottom:12px">选择后洞府页面会显示「今日建议修炼」，你可随时切换或忽略。</p>';
   ROUTES.forEach(function(r){
     const sel = appData.trainingRoute === r.id ? ' selected' : '';
-    html += '<div class="route-card'+sel+'" onclick="selectRoute(\''+r.id+'\')">';
+    const hasDetail = ROUTE_PLANS[r.id] && ROUTE_PLANS[r.id].detail;
+    html += '<div class="route-card'+sel+'">';
+    html += '<div onclick="selectRoute(\''+r.id+'\')" style="cursor:pointer">';
     html += '<div class="rc-name">'+r.name+'</div>';
     html += '<div class="rc-desc">'+r.desc+' · '+r.freq+'</div>';
     html += '<div class="rc-info">'+r.info+'</div>';
     html += '</div>';
+    if(hasDetail){
+      html += '<button onclick="event.stopPropagation();showRouteDetail(\''+r.id+'\')" style="margin-top:8px;padding:6px 14px;border:none;border-radius:6px;background:rgba(201,169,110,.12);color:var(--gold);font-size:12px;cursor:pointer;width:100%">📖 查看完整功法详解</button>';
+    }
+    html += '</div>';
   });
   html += '</div>';
   area.innerHTML = html;
+}
+
+function showRouteDetail(routeId){
+  var route = ROUTES.find(function(r){ return r.id === routeId; });
+  var plan = ROUTE_PLANS[routeId];
+  if(!route || !plan) return;
+  var existing = document.getElementById('route-detail-overlay');
+  if(existing) existing.remove();
+  
+  var overlay = document.createElement('div');
+  overlay.id = 'route-detail-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<div style="font-size:17px;font-weight:700;color:var(--gold2)">🗺️ '+route.name+'</div>';
+  html += '<button onclick="this.closest(\'#route-detail-overlay\').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button>';
+  html += '</div>';
+  
+  html += '<div style="margin-bottom:12px">';
+  html += '<span style="font-size:12px;color:var(--text2);display:inline-block;padding:2px 10px;border-radius:4px;background:rgba(201,169,110,.1);margin-right:6px">'+route.freq+'</span>';
+  html += '<span style="font-size:12px;color:var(--text2)">'+route.desc+'</span>';
+  html += '</div>';
+  
+  html += '<div style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:14px;padding:12px;background:rgba(0,0,0,.15);border-radius:8px">';
+  html += (plan.detail || '暂无详细说明。')+'</div>';
+  
+  // Show training days
+  var exKeys = Object.keys(plan.exercises);
+  html += '<div style="font-size:13px;color:var(--gold2);margin-bottom:8px">📋 训练日安排</div>';
+  exKeys.forEach(function(dayName){
+    var exs = plan.exercises[dayName];
+    html += '<div style="background:rgba(0,0,0,.1);border-radius:8px;padding:10px;margin-bottom:8px">';
+    html += '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">'+dayName+'</div>';
+    exs.forEach(function(exName){
+      var rr = plan.repRanges[exName] || '';
+      html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0">';
+      html += '<span>'+exName+'</span>';
+      html += '<span style="color:var(--gold)">'+rr+'</span></div>';
+    });
+    html += '</div>';
+  });
+  
+  html += '<button onclick="selectRoute(\''+routeId+'\');this.closest(\'#route-detail-overlay\').remove()" style="width:100%;padding:12px;margin-top:8px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:14px;font-weight:700;cursor:pointer">选择此路线</button>';
+  html += '</div>';
+  
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 }
 
 function addRoutePlanExercises(){
