@@ -191,10 +191,18 @@ body{
 .quote-card .quote-source{font-size:12px;color:var(--text2);margin-top:6px;text-align:right}
 
 /* ============ PAGE: TRAINING (修炼) ============ */
-.training-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.training-header h2{font-size:18px;color:var(--gold2)}
-.training-header .today-qi{font-size:13px;color:var(--text2)}
-.training-header .today-qi span{color:var(--gold-bright);font-weight:700}
+.train-status-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--card);border-radius:var(--radius);padding:8px 14px;
+  margin-bottom:10px;border:1px solid rgba(201,169,110,.1);
+  min-height:40px;flex-wrap:wrap;gap:4px;
+}
+.train-status-bar .tsb-item{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px}
+.train-status-bar .tsb-item .tsb-val{font-weight:600}
+.train-status-bar .tsb-item .tsb-val.qi{color:var(--gold-bright)}
+.train-status-bar .tsb-item .tsb-val.time{color:var(--gold)}
+.train-status-bar .tsb-item .tsb-val.rest{color:var(--warm)}
+.train-status-bar .tsb-item .tsb-val.done{color:var(--success)}
 
 .exercise-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
 .exercise-card{
@@ -236,13 +244,7 @@ body{
   font-weight:600;cursor:pointer;white-space:nowrap;min-height:44px;
 }
 
-.end-training-btn{
-  display:block;width:100%;padding:16px;border:none;border-radius:var(--radius);
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;
-  transition:all .2s;
-}
-.end-training-btn:disabled{opacity:.4;cursor:not-allowed}
+
 
 /* Qi float animation */
 .qi-float{
@@ -553,23 +555,23 @@ body{
 
   <!-- ======== PAGE: 修炼 (Training) ======== -->
   <section id="page-training" class="page">
-    <div class="training-header">
-      <h2>今日修炼</h2>
-      <div class="today-qi">灵力：<span id="training-qi-display">0</span></div>
-    </div>
-    <div id="today-sessions"></div>
-    <div id="timer-bar"></div>
+    <!-- Compact status bar -->
+    <div id="train-status-bar" class="train-status-bar"></div>
+    <!-- Route hint (compact) -->
     <div id="training-route-plan"></div>
+    <!-- Muscle warning -->
     <div id="muscle-warning-area"></div>
-    <div id="start-workout-area"></div>
+    <!-- Add exercise -->
     <div class="add-exercise-bar">
       <select id="exercise-select">
         <option value="">选择功法…</option>
       </select>
       <button onclick="addExerciseToTraining()">＋ 添加</button>
     </div>
+    <!-- Exercise list -->
     <div id="training-exercise-list" class="exercise-list"></div>
-    <button class="end-training-btn" id="end-training-btn" onclick="endTraining()" disabled>结束修炼</button>
+    <!-- Action buttons (start + end) -->
+    <div id="train-actions"></div>
   </section>
 
   <!-- ======== PAGE: 功法 (Skills) ======== -->
@@ -1306,47 +1308,11 @@ function renderTraining(){
   const today = getTodayStr();
   const hasSessionToday = appData.sessions.some(function(s){ return s.date === today; });
 
-  // Today's completed sessions
-  renderTodaySessions();
+  // Unified status bar
+  renderStatusBar();
 
-  // Timer bar
-  renderTimerBar();
-
-  // Route plan recommendation
-  const routeArea = document.getElementById('training-route-plan');
-  if(routeArea){
-    const plan = getTodayPlan();
-    if(plan){
-      var pHtml = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15)">';
-      pHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
-      pHtml += '<span style="font-size:18px">🗺️</span>';
-      pHtml += '<div><div style="font-size:14px;font-weight:600;color:var(--gold2)">今日修炼：'+plan.dayName+'</div>';
-      pHtml += '<div style="font-size:12px;color:var(--text2)">'+plan.plan.weekFreq+'</div></div></div>';
-      pHtml += '<div style="font-size:12px;color:var(--text);margin-bottom:8px">推荐功法：</div>';
-      plan.exercises.forEach(function(exName){
-        const repRange = plan.plan.repRanges[exName] || '10次 × 3组';
-        pHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04)">';
-        pHtml += '<span>'+exName+'</span>';
-        pHtml += '<span style="color:var(--text2);font-size:12px">'+repRange+'</span>';
-        pHtml += '</div>';
-      });
-      // Check if any recommended exercises are not yet in currentTraining
-      var hasMissing = false;
-      plan.exercises.forEach(function(exName){
-        const exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
-        if(exIdx === -1) return;
-        var found = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
-        if(!found) hasMissing = true;
-      });
-      pHtml += '<button onclick="addRoutePlanExercises()" style="width:100%;padding:10px;margin-top:8px;border:none;border-radius:8px;background:'+(hasMissing?'linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e':'rgba(92,184,92,.15);color:var(--success)')+';font-size:14px;font-weight:600;cursor:pointer;min-height:44px">';
-      pHtml += hasMissing ? '📋 一键添加推荐功法' : '✅ 今日推荐功法已全部添加';
-      pHtml += '</button>';
-      pHtml += '</div>';
-      routeArea.innerHTML = pHtml;
-    } else {
-      routeArea.innerHTML = '';
-    }
-  }
+  // Compact route hint
+  renderRouteHint();
 
   // Populate exercise select
   const sel = document.getElementById('exercise-select');
@@ -1373,21 +1339,12 @@ function renderTrainingList(){
   container.innerHTML = '';
   if(currentTraining.length === 0){
     container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text2)">点击上方功法添加，开始今日修炼</div>';
-    document.getElementById('end-training-btn').disabled = true;
+    renderActions();
     return;
   }
 
-  document.getElementById('end-training-btn').disabled = false;
-
-  // Show start workout button if not active
-  var startBtnArea = document.getElementById('start-workout-area');
-  if(startBtnArea){
-    if(!workoutState.active){
-      startBtnArea.innerHTML = '<button onclick="startWorkout()" style="width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:2px">⚔️ 开始修炼</button>';
-    } else {
-      startBtnArea.innerHTML = '<div style="background:rgba(92,184,92,.08);border:1px solid rgba(92,184,92,.2);border-radius:var(--radius);padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--success)">⚔️ 修炼进行中 · 完成每组后点击 ✓</div>';
-    }
-  }
+  // Render action buttons
+  renderActions();
 
   currentTraining.forEach((item, idx)=>{
     const ex = appData.exercises[item.exerciseIdx];
@@ -1524,28 +1481,41 @@ function checkMuscleWarning(){
 // TODAY SESSIONS + DELETE
 // ===================================================================
 function renderTodaySessions(){
-  const container = document.getElementById('today-sessions');
+  const container = document.getElementById('train-status-bar');
   if(!container) return;
+  if(!_todaySessionsVisible){ return; }
+  // Render below status bar as a popup-like section
+  var statusParent = container.parentNode;
+  var existing = document.getElementById('today-sessions-detail');
+  if(existing) existing.remove();
   const today = getTodayStr();
-  var html = '';
+  var html = '<div id="today-sessions-detail" style="background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:8px;border:1px solid rgba(92,184,92,.2);animation:slideUp .2s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  html += '<div style="font-size:13px;color:var(--success);font-weight:600">✅ 今日已完成</div>';
+  html += '<button onclick="toggleTodaySessions()" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer">✕</button>';
+  html += '</div>';
+  var found = false;
   appData.sessions.forEach(function(s, idx){
     if(s.date !== today) return;
-    html += '<div style="background:rgba(92,184,92,.06);border:1px solid rgba(92,184,92,.2);border-radius:var(--radius);padding:12px;margin-bottom:8px">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-    html += '<div style="font-size:13px;font-weight:600;color:var(--success)">✅ 已完成修炼 #'+(idx+1)+'</div>';
-    html += '<div style="color:var(--gold-bright);font-weight:700">+'+s.totalQi+' 灵力</div>';
+    found = true;
+    html += '<div style="margin-bottom:8px;padding:8px;background:rgba(0,0,0,.15);border-radius:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    html += '<div style="font-size:12px;color:var(--text2)">#'+(idx+1)+'</div>';
+    html += '<div style="color:var(--gold-bright);font-weight:700;font-size:13px">+'+s.totalQi+' 灵力</div>';
     html += '</div>';
     s.exercises.forEach(function(item){
       const ex = appData.exercises[item.exerciseIdx];
       if(!ex) return;
-      html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0">';
+      html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:1px 0">';
       html += '<span>'+ex.emoji+' '+ex.name+'</span>';
       html += '<span>'+item.sets.length+' 组</span></div>';
     });
-    html += '<button onclick="deleteSession('+idx+')" style="margin-top:6px;padding:4px 12px;border:none;border-radius:6px;background:rgba(139,0,0,.2);color:#ff6b6b;font-size:12px;cursor:pointer">删除此记录（回退灵力）</button>';
+    html += '<button onclick="deleteSession('+idx+')" style="margin-top:4px;padding:3px 10px;border:none;border-radius:4px;background:rgba(139,0,0,.15);color:#ff6b6b;font-size:11px;cursor:pointer">删除（回退灵力）</button>';
     html += '</div>';
   });
-  container.innerHTML = html;
+  if(!found) html += '<div style="font-size:12px;color:var(--text2);text-align:center;padding:8px">暂无已完成记录</div>';
+  html += '</div>';
+  container.parentNode.insertBefore(document.createRange().createContextualFragment(html), container.nextSibling);
 }
 
 function deleteSession(sessionIdx){
@@ -1571,27 +1541,55 @@ function deleteSession(sessionIdx){
 // ===================================================================
 // WORKOUT TIMER + SET COMPLETION
 // ===================================================================
-function renderTimerBar(){
-  var container = document.getElementById('timer-bar');
+function renderStatusBar(){
+  var container = document.getElementById('train-status-bar');
   if(!container) return;
-  var html = '';
+  const today = getTodayStr();
+  var items = [];
+  // Qi
+  items.push('<span class="tsb-item">⚡<span class="tsb-val qi">'+(appData.todayQi||0)+'</span></span>');
+  // Timer (if workout active)
   if(workoutState.active){
-    html += '<div style="background:var(--card);border:1px solid rgba(201,169,110,.15);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
-    html += '<span style="font-size:12px;color:var(--text2)">⏱️ 修炼时长</span>';
-    html += '<span style="font-size:16px;font-weight:700;color:var(--gold-bright)" id="workout-timer">'+formatTime(workoutState.elapsedWorkout)+'</span>';
-    html += '</div>';
+    items.push('<span class="tsb-item">⏱️<span class="tsb-val time" id="workout-timer">'+formatTime(workoutState.elapsedWorkout)+'</span></span>');
     if(workoutState.isResting){
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.06)">';
-      html += '<span style="font-size:12px;color:var(--warm)">🧘 组间休息</span>';
-      html += '<div style="display:flex;align-items:center;gap:8px">';
-      html += '<span style="font-size:16px;font-weight:700;color:var(--warm)" id="rest-timer">'+formatTime(workoutState.elapsedRest)+'</span>';
-      html += '<button onclick="endRest()" style="padding:4px 12px;border:none;border-radius:6px;background:var(--gold);color:#1a1a2e;font-size:12px;font-weight:600;cursor:pointer">继续</button>';
-      html += '</div></div>';
+      items.push('<span class="tsb-item">🧘<span class="tsb-val rest" id="rest-timer">'+formatTime(workoutState.elapsedRest)+'</span><button onclick="endRest()" style="padding:2px 8px;border:none;border-radius:4px;background:var(--warm);color:#1a1a2e;font-size:11px;font-weight:600;cursor:pointer;margin-left:2px">继续</button></span>');
     }
-    html += '</div>';
   }
-  container.innerHTML = html;
+  // Today completed sessions
+  var todayCount = 0;
+  appData.sessions.forEach(function(s){ if(s.date===today) todayCount++; });
+  if(todayCount > 0){
+    items.push('<span class="tsb-item" style="cursor:pointer" onclick="toggleTodaySessions()">✅<span class="tsb-val done">'+todayCount+' 条</span></span>');
+  }
+  container.innerHTML = items.join('<span style="color:rgba(255,255,255,.08)">|</span>');
+}
+
+var _todaySessionsVisible = false;
+function toggleTodaySessions(){
+  _todaySessionsVisible = !_todaySessionsVisible;
+  renderTodaySessions();
+}
+
+function renderRouteHint(){
+  const routeArea = document.getElementById('training-route-plan');
+  if(!routeArea) return;
+  const plan = getTodayPlan();
+  if(plan){
+    var hasMissing = false;
+    plan.exercises.forEach(function(exName){
+      const exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
+      if(exIdx === -1) return;
+      var found = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
+      if(!found) hasMissing = true;
+    });
+    routeArea.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
+      + '<span style="color:var(--gold2)">🗺️ '+plan.dayName+'</span>'
+      + ' · <span>'+plan.plan.weekFreq+'</span>'
+      + (hasMissing ? '<button onclick="addRoutePlanExercises()" style="margin-left:auto;padding:4px 10px;border:none;border-radius:6px;background:rgba(201,169,110,.15);color:var(--gold);font-size:11px;cursor:pointer">＋ 一键添加</button>' : '')
+      + '</div>';
+  } else {
+    routeArea.innerHTML = '';
+  }
 }
 
 function startWorkout(){
@@ -1609,11 +1607,7 @@ function startWorkout(){
     if(workoutState.isResting && workoutState.restStartTime){
       workoutState.elapsedRest = Math.floor((Date.now() - workoutState.restStartTime) / 1000);
     }
-    renderTimerBar();
-    var wt = document.getElementById('workout-timer');
-    if(wt) wt.textContent = formatTime(workoutState.elapsedWorkout);
-    var rt = document.getElementById('rest-timer');
-    if(rt) rt.textContent = formatTime(workoutState.elapsedRest);
+    renderStatusBar();
   }, 1000);
   renderTrainingList();
   showToast('⚔️ 修炼开始！道友请专注每一组动作');
@@ -1641,6 +1635,21 @@ function completeSet(exIdx, setIdx){
   if(allDone && currentTraining.length > 0){
     showToast('🎯 所有组已完成！点击「结束修炼」结算灵力');
   }
+}
+
+function renderActions(){
+  var container = document.getElementById('train-actions');
+  if(!container) return;
+  var html = '';
+  if(currentTraining.length > 0){
+    if(!workoutState.active){
+      html += '<button onclick="startWorkout()" style="width:100%;padding:14px;margin-bottom:8px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:2px">⚔️ 开始修炼</button>';
+    } else {
+      html += '<div style="background:rgba(92,184,92,.06);border-radius:var(--radius);padding:8px;margin-bottom:8px;text-align:center;font-size:12px;color:var(--success)">⚔️ 修炼中 · 完成每组后点击 ✓</div>';
+      html += '<button onclick="endTraining()" style="width:100%;padding:14px;margin-bottom:8px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer">📊 结束修炼 · 结算灵力</button>';
+    }
+  }
+  container.innerHTML = html;
 }
 
 function endRest(){
