@@ -544,6 +544,7 @@ body{
       <div class="consecutive">闭关第 <span id="consecutive-display">0</span> 天</div>
     </div>
     <div id="rest-suggestion-area"></div>
+    <div id="route-recommendation"></div>
     <button class="start-training-btn" id="start-training-btn" onclick="goToTraining()">开始修炼</button>
     <div id="rest-card-container"></div>
     <div id="quote-container"></div>
@@ -1121,6 +1122,23 @@ function renderRealm(){
   document.getElementById('realm-title').textContent = info.name;
   document.getElementById('today-qi-display').textContent = appData.todayQi || 0;
   document.getElementById('consecutive-display').textContent = appData.consecutiveDays || 0;
+
+  // Route recommendation
+  const routeArea = document.getElementById('route-recommendation');
+  if(routeArea){
+    var routeHtml = '';
+    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
+      const route = ROUTES.find(function(r){ return r.id === appData.trainingRoute; });
+      if(route){
+        routeHtml = '<div style="background:rgba(201,169,110,.08);border:1px solid rgba(201,169,110,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px">';
+        routeHtml += '<span style="font-size:16px">🗺️</span>';
+        routeHtml += '<div style="flex:1"><div style="font-size:13px;color:var(--text)">今日建议修炼</div><div style="font-size:12px;color:var(--gold)">'+route.name+' · '+route.freq+'</div></div>';
+        routeHtml += '<button onclick="switchPage(\'skills\')" style="background:none;border:1px solid rgba(201,169,110,.3);color:var(--gold);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer">切换</button>';
+        routeHtml += '</div>';
+      }
+    }
+    routeArea.innerHTML = routeHtml;
+  }
 
   // Start training button
   const btn = document.getElementById('start-training-btn');
@@ -1807,6 +1825,10 @@ function selectRoute(id){
   saveData();
   renderRoutes();
   renderRealm();
+  const route = ROUTES.find(function(r){ return r.id === id; });
+  if(route){
+    showToast('🗺️ 已切换至「' + route.name + '」—— 洞府页面可查看今日建议');
+  }
 }
 
 // ===================================================================
