@@ -286,10 +286,8 @@ body{
 .custom-ex-form input:focus,.custom-ex-form select:focus{border-color:var(--gold)}
 .custom-ex-form button{padding:10px 18px;border:none;border-radius:8px;background:var(--gold);color:#1a1a2e;font-weight:600;cursor:pointer;min-height:40px}
 
-/* ============ PAGE: TRIBULATION (天劫) ============ */
-.trib-header{text-align:center;margin-bottom:16px}
-.trib-header h2{font-size:20px;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif}
-.trib-header p{font-size:13px;color:var(--text2);margin-top:4px}
+/* ============ PAGE: SECRET REALM (秘境) ============ */
+
 .trib-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15);transition:all .2s}
 .trib-card .tc-type{font-size:12px;color:var(--text2);margin-bottom:4px}
 .trib-card .tc-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
@@ -585,13 +583,9 @@ body{
     <div id="skills-exercise-list"></div>
   </section>
 
-  <!-- ======== PAGE: 天劫 (Tribulation) ======== -->
+  <!-- ======== PAGE: 秘境 (Secret Realm) ======== -->
   <section id="page-tribulation" class="page">
-    <div class="trib-header">
-      <h2>⚡ 天劫挑战</h2>
-      <p>天道酬勤，量力而行——渡劫与否，皆由你定</p>
-    </div>
-    <div id="tribulation-content"></div>
+    <div id="secret-realm-content"></div>
   </section>
 
   <!-- ======== PAGE: 图谱 (Atlas) ======== -->
@@ -611,7 +605,8 @@ body{
       <span class="nav-icon">📜</span>功法
     </button>
     <button class="nav-btn" data-page="tribulation" onclick="switchPage('tribulation')">
-      <span class="nav-icon">⚡</span>天劫
+      <span class="nav-icon">🏛️</span>秘境
+      <span id="realm-badge" style="display:none;position:absolute;top:2px;right:4px;width:8px;height:8px;background:#ff4444;border-radius:50%;box-shadow:0 0 4px rgba(255,68,68,.6)"></span>
     </button>
     <button class="nav-btn" data-page="atlas" onclick="switchPage('atlas')">
       <span class="nav-icon">🗺️</span>图谱
@@ -826,6 +821,8 @@ function init(){
     renderQuotes();
     renderWarnings();
     updateHeader();
+    checkSecretRealmAppearance();
+    updateRealmBadge();
   }
 }
 
@@ -876,6 +873,7 @@ function getDefaultData(){
       totalVolume:0
     })),
     tribulations:{ small:[], large:[] },
+    secretRealm:{ active:null, history:[], lastAppearance:null, weekCount:0, weekStart:null },
     achievements:[],
     npcLeaderboard:NPC_NAMES.map((name,i)=>({
       name, qi:0, title:REALMS[0].name+'·初期'
@@ -1326,7 +1324,7 @@ function switchPage(name){
   } else if(name === 'skills'){
     renderSkills();
   } else if(name === 'tribulation'){
-    renderTribulation();
+    renderSecretRealm();
   } else if(name === 'atlas'){
     renderAtlas();
   }
@@ -2029,6 +2027,10 @@ function endTraining(){
   // Check achievements
   checkAchievements();
 
+  // Check secret realm appearance
+  checkSecretRealmAppearance();
+  updateRealmBadge();
+
   // Clear current training
   currentTraining = [];
   updateHeader();
@@ -2468,207 +2470,281 @@ function selectRoute(id){
 }
 
 // ===================================================================
-// TRIBULATION (天劫)
+// SECRET REALM (秘境)
 // ===================================================================
-function renderTribulation(){
-  const container = document.getElementById('tribulation-content');
-  if(!container) return;
+function checkSecretRealmAppearance(){
+  if(!appData.secretRealm) appData.secretRealm = { active:null, history:[], lastAppearance:null, weekCount:0, weekStart:null };
+  var sr = appData.secretRealm;
+  var today = getTodayStr();
+  var consecutive = appData.consecutiveDays || 0;
   
-  const today = getTodayStr();
-  const hasTrainedToday = appData.lastActiveDate === today && appData.sessions.some(function(s){ return s.date === today; });
-  const consecutive = appData.consecutiveDays || 0;
+  // Already active? Don't create another
+  if(sr.active && sr.active.expiresAt && sr.active.expiresAt > today) return;
   
-  var html = '';
+  // Reset weekly count
+  var weekStart = getWeekStart(today);
+  if(sr.weekStart !== weekStart){ sr.weekCount = 0; sr.weekStart = weekStart; }
   
-  // Check if small tribulation done today
-  const smallDone = appData.tribulations.small.some(function(t){ return t.date === today; });
-  // Check if large tribulation done this week
-  const weekStart = getWeekStart(today);
-  const largeDone = appData.tribulations.large.some(function(t){ return t.week === weekStart; });
+  // Max 3 per week
+  if(sr.weekCount >= 3) return;
   
-  // If consecutive >= 5, force recovery tribulation
-  const isRecovery = consecutive >= 5;
+  // Don't appear on 5+ consecutive days
+  if(consecutive >= 5) return;
   
-  // Small tribulation
-  html += '<div class="trib-card">';
-  html += '<div class="tc-type">✨ 小天劫 · 每日可选</div>';
-  if(smallDone){
-    html += '<div class="trib-completed"><div class="tc-icon">✅</div><div>今日天劫已渡，劫云散去，身心舒畅。</div></div>';
-  } else if(isRecovery){
-    // Generate recovery tribulation
-    const recoveryList = [
-      {title:'静修天劫·舒展经脉', desc:'完成 15 分钟全身拉伸', reward:30, icon:'🧘'},
-      {title:'静修天劫·采气归元', desc:'散步 30 分钟，呼吸吐纳', reward:40, icon:'🚶'},
-      {title:'静修天劫·入定冥想', desc:'泡沫轴放松 10 分钟', reward:25, icon:'🛌'},
+  // Conditions: consecutive 2-4, last training >= 1 day ago
+  if(consecutive < 2 || consecutive > 4) return;
+  
+  // Check last appearance was at least 1 day ago
+  var lastDate = sr.lastAppearance;
+  if(lastDate && daysBetween(lastDate, today) < 1) return;
+  
+  // Base 40% chance
+  var chance = 0.4;
+  // Check if user recently broke PR (last 3 sessions)
+  var recentSessions = appData.sessions.slice(-3);
+  var recentPR = recentSessions.some(function(s){ return s.hasPR; });
+  if(recentPR) chance += 0.2;
+  
+  if(Math.random() > chance) return;
+  
+  // Generate realm
+  var realm = generateSecretRealm();
+  if(!realm) return;
+  sr.active = realm;
+  sr.lastAppearance = today;
+  sr.weekCount++;
+  saveData();
+  updateRealmBadge();
+}
+
+function generateSecretRealm(){
+  var consecutive = appData.consecutiveDays || 0;
+  var today = getTodayStr();
+  var isRestDay = appData.lastActiveDate !== today;
+  var types = [];
+  
+  // Decide type
+  if(consecutive >= 4 || isRestDay){
+    // Recovery realm
+    var recList = [
+      { title:'🧘 静修秘境·舒展经脉', desc:'天地间灵气温和，一处静修秘境在晨光中显现。踏入其中，经脉自然舒展。\n\n完成 15 分钟全身拉伸，感受灵力在体内缓缓流淌。', reward:30, action:'拉伸 15 分钟' },
+      { title:'🚶 静修秘境·采气归元', desc:'山林间灵气浓郁，一处采气秘境入口散发明月般的光晕。\n\n散步 30 分钟，配合深呼吸，让天地灵气与体内灵力共鸣。', reward:40, action:'散步 30 分钟' },
+      { title:'🛌 静修秘境·入定冥想', desc:'一处隐秘的石室出现在你面前，壁上刻满静心法诀。\n\n泡沫轴放松 10 分钟，或静坐调息，让身心回归宁静。', reward:25, action:'放松 10 分钟' },
     ];
-    const rec = recoveryList[Math.floor(Math.random() * recoveryList.length)];
-    html += '<div class="tc-title">'+rec.icon+' '+rec.title+'</div>';
-    html += '<div class="tc-desc">⚡ 九天之上劫云翻涌！然天道仁慈——道友连日修炼，经脉需温养，降下静修天劫。<br><br>'+rec.desc+'</div>';
-    html += '<div class="tc-reward">天道馈赠：+'+rec.reward+' 巩固灵力</div>';
-    html += '<button class="tc-btn recovery" onclick="completeTribulationSmall()">完成静修</button>';
-    // Store current tribulation
-    window._currentRecoveryTrib = rec;
-  } else {
-    // Generate based on recent training data
-    const trib = generateSmallTribulation();
-    html += '<div class="tc-title">'+trib.icon+' '+trib.title+'</div>';
-    html += '<div class="tc-desc">⚡ 九天之上劫云翻涌！然天道仁慈，降下小天劫——<br><br>'+trib.desc+'<br><br>若觉力有不逮，亦可安然度过，无人怪你。</div>';
-    html += '<div class="tc-reward">天道馈赠：+'+trib.reward+' 灵力</div>';
-    html += '<button class="tc-btn" onclick="completeTribulationSmall()">应劫挑战</button>';
-    window._currentTrib = trib;
+    return { type:'recovery', sub: recList[Math.floor(Math.random()*recList.length)], completed:false, createdAt:today, expiresAt:getDateStr(new Date(Date.now()+86400000)) };
   }
-  html += '</div>';
   
-  // Large tribulation
-  html += '<div class="trib-card">';
-  html += '<div class="tc-type">🔥 大天劫 · 每周可选</div>';
-  if(largeDone){
-    html += '<div class="trib-completed"><div class="tc-icon">✅</div><div>本周大天劫已渡，天道降下丰厚馈赠。</div></div>';
-  } else if(consecutive >= 5 || hasTrainedToday){
-    // Recovery type for large too
-    html += '<div class="tc-title">🛌 静修天劫·固本培元</div>';
-    html += '<div class="tc-desc">本周训练已满，天道降下静修大天劫——今日以恢复为主，巩固根基。</div>';
-    html += '<div class="tc-reward">天道馈赠：+50 巩固灵力</div>';
-    html += '<button class="tc-btn recovery" onclick="completeTribulationLarge()">完成静修</button>';
-  } else {
-    const large = generateLargeTribulation();
-    html += '<div class="tc-title">'+large.icon+' '+large.title+'</div>';
-    html += '<div class="tc-desc">'+large.desc+'</div>';
-    html += '<div class="tc-reward">天道馈赠：+'+large.reward+' 灵力</div>';
-    html += '<button class="tc-btn" onclick="completeTribulationLarge()">应劫挑战</button>';
-    window._currentLargeTrib = large;
+  // Normal training realm (challenge)
+  var exList = appData.exercises.filter(function(e){ return !e._deleted; });
+  if(exList.length === 0) return null;
+  
+  // Try to pick a less-trained exercise (legacy realm)
+  exList.sort(function(a,b){ return a.totalSets - b.totalSets; });
+  var leastTrained = exList[0];
+  
+  // 30% chance: legacy realm (try new exercise)
+  if(Math.random() < 0.3 && leastTrained.totalSets < 5){
+    return generateLegacyRealm(leastTrained);
   }
-  html += '</div>';
   
-  container.innerHTML = html;
+  // Otherwise: trial realm
+  return generateTrialRealm(exList);
 }
 
-function generateSmallTribulation(){
-  // Find available muscle groups (not trained yesterday)
-  const yesterday = getYesterdayStr();
-  const yMuscles = appData.muscleHistory && appData.muscleHistory[yesterday] ? appData.muscleHistory[yesterday] : [];
+function generateTrialRealm(exList){
+  var today = getTodayStr();
+  var yesterday = getYesterdayStr();
+  var yMuscles = appData.muscleHistory && appData.muscleHistory[yesterday] ? appData.muscleHistory[yesterday] : [];
   
-  // Available exercises for tribulation
-  const available = appData.exercises.filter(function(e){
-    return !e._deleted && yMuscles.indexOf(e.muscle) === -1;
-  });
+  // Same muscle protection
+  var available = exList.filter(function(e){ return yMuscles.indexOf(e.muscle) === -1; });
+  if(available.length === 0) available = exList;
   
-  const ex = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : appData.exercises[0];
+  var ex = available[Math.floor(Math.random() * available.length)];
   
-  // Calculate target based on past 14 days
-  const past14 = appData.sessions.filter(function(s){
-    const daysDiff = (new Date(getTodayStr()) - new Date(s.date)) / 86400000;
-    return daysDiff <= 14 && daysDiff >= 0;
-  });
-  
-  var avgVolume = 0;
-  var count = 0;
-  past14.forEach(function(session){
-    session.exercises.forEach(function(item){
-      const e = appData.exercises[item.exerciseIdx];
-      if(e && e.muscle === ex.muscle){
-        item.sets.forEach(function(set){
-          avgVolume += (set.weight || 0) * (set.reps || 0);
-          count++;
-        });
-      }
-    });
-  });
-  
-  if(count > 0) avgVolume = Math.round(avgVolume / count);
-  else avgVolume = Math.round((appData.user.weight || 70) * 10);
-  
-  // Target: 100-115% of average
-  const target = Math.round(avgVolume * (1.0 + Math.random() * 0.15));
-  
-  return {
-    title: ex.emoji+' '+ex.alias+'·天劫',
-    desc: '今日需完成 '+ex.name+' 训练——总量达到 '+target+' 即可渡劫成功。\n（约等于 '+(target > 0 ? Math.round(target / (avgVolume || 1) * 100) : 100)+'% 日常水平，天道从不为难凡人。）',
-    reward: Math.round(target * 0.05 * ex.coeff) + 20,
-    icon: '⚡',
-    target: target,
-    muscle: ex.muscle
-  };
-}
-
-function generateLargeTribulation(){
-  // Average weekly volume over past 4 weeks
-  var totalWeekly = 0;
-  var weekCount = 0;
-  const today = getTodayStr();
-  for(var w=0; w<4; w++){
-    const ws = getWeekStart(today, w);
-    if(appData.weeklyQiHistory){
-      appData.weeklyQiHistory.forEach(function(wh){
-        if(wh.week === ws){
-          totalWeekly += wh.total;
-          weekCount++;
+  // Past 14 days avg
+  var avgVol = 0, count = 0;
+  appData.sessions.forEach(function(s){
+    var dd = daysBetween(s.date, today);
+    if(dd <= 14 && dd >= 0){
+      s.exercises.forEach(function(item){
+        var e = appData.exercises[item.exerciseIdx];
+        if(e && e.muscle === ex.muscle){
+          item.sets.forEach(function(set){ avgVol += (set.weight||0)*(set.reps||0); count++; });
         }
       });
     }
-  }
-  var avgWeekly = weekCount > 0 ? Math.round(totalWeekly / weekCount) : 200;
-  const target = Math.round(avgWeekly * (1.0 + Math.random() * 0.10));
+  });
+  if(count > 0) avgVol = Math.round(avgVol/count);
+  else avgVol = Math.round((appData.user.weight||70)*10);
+  
+  var target = Math.round(avgVol * (1.0 + Math.random()*0.15));
+  var reward = Math.round(target * 0.05 * ex.coeff) + 30;
+  
+  var desc = '灵力波动！一座试炼秘境在虚空中浮现。「'+ex.alias+'」的试炼——通道中灵力凝聚成'+ex.name+'的形状。\n\n完成总量达到 '+target+' 即可吸收秘境中的灵力。（基于你过去14天的修炼数据，难度恰到好处。）\n\n量力而行，机缘来去自如，不损道心。';
   
   return {
-    title: '大天劫·周总量试炼',
-    desc: '本周修炼灵力总量需达到 '+target+'。\n（过去四周平均周总量为 '+avgWeekly+'，天道仅取十之一二为试炼。）\n自由分配至各功法，心力不足亦可放弃，下次再战。',
-    reward: Math.round(target * 0.15) + 50,
-    icon: '🔥',
-    target: target
+    type:'trial',
+    title: '⚔️ 试炼秘境·'+ex.alias,
+    desc: desc,
+    reward: reward,
+    exName: ex.name,
+    exIdx: exList.indexOf(ex),
+    target: target,
+    muscle: ex.muscle,
+    completed: false,
+    createdAt: today,
+    expiresAt: getDateStr(new Date(Date.now()+86400000)),
   };
 }
 
-function completeTribulationSmall(){
-  const today = getTodayStr();
-  const trib = window._currentTrib || window._currentRecoveryTrib;
-  const reward = trib ? trib.reward : 30;
-  
-  if(!appData.tribulations) appData.tribulations = { small:[], large:[] };
-  appData.tribulations.small.push({
-    date: today,
+function generateLegacyRealm(ex){
+  var desc = '你感应到一股陌生的灵力波动——一座传承秘境悄然显现，其中封存着「'+ex.alias+'」的古法传承。\n\n进入秘境，尝试修炼此功法，完成 3 组（每组 8-12 次）即可获得传承馈赠。\n\n（此功法你尚不熟悉，正好借秘境一探究竟。）';
+  var reward = 60;
+  return {
+    type:'legacy',
+    title: '📜 传承秘境·'+ex.alias,
+    desc: desc,
     reward: reward,
-    completed: true
-  });
+    exName: ex.name,
+    exIdx: -1,
+    target: null,
+    completed: false,
+    createdAt: getTodayStr(),
+    expiresAt: getDateStr(new Date(Date.now()+86400000)),
+  };
+}
+
+function renderSecretRealm(){
+  var container = document.getElementById('secret-realm-content');
+  if(!container) return;
   
+  // Check expiry
+  var sr = appData.secretRealm;
+  if(sr && sr.active){
+    var today = getTodayStr();
+    if(sr.active.expiresAt && sr.active.expiresAt < today){
+      sr.active = null;
+      saveData();
+      updateRealmBadge();
+    }
+  }
+  
+  var active = sr && sr.active && !sr.active.completed;
+  var html = '';
+  
+  if(active){
+    var r = sr.active;
+    var expiresIn = r.expiresAt ? '剩余 ' + daysBetween(today, r.expiresAt) + ' 天' : '';
+    var bgColor, iconBig;
+    if(r.type === 'recovery'){ bgColor = 'rgba(240,192,96,.08)'; iconBig='🧘'; }
+    else if(r.type === 'legacy'){ bgColor = 'rgba(201,169,110,.08)'; iconBig='📜'; }
+    else { bgColor = 'rgba(201,169,110,.08)'; iconBig='⚔️'; }
+    
+    html += '<div style="text-align:center;margin-bottom:8px;animation:float 3s ease-in-out infinite">';
+    html += '<span style="font-size:48px">🏛️</span></div>';
+    html += '<div class="trib-card" style="background:'+bgColor+'">';
+    
+    if(r.sub){
+      // Recovery realm has sub object
+      html += '<div class="tc-type">🧘 静修秘境 · 有时限</div>';
+      html += '<div class="tc-title">'+r.sub.title+'</div>';
+      html += '<div class="tc-desc">'+r.sub.desc+'</div>';
+      html += '<div class="tc-reward">灵力馈赠：+'+r.sub.reward+' 巩固灵力</div>';
+    } else {
+      html += '<div class="tc-type">'+(r.type==='legacy'?'📜 传承秘境':'⚔️ 试炼秘境')+' · 有时限</div>';
+      html += '<div class="tc-title">'+(r.title||'秘境')+'</div>';
+      if(r.type === 'legacy'){
+        html += '<div class="tc-desc">'+r.desc+'</div>';
+        html += '<div style="background:rgba(201,169,110,.1);border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">';
+        html += '<div style="font-size:13px;color:var(--gold)">完成 3 组 × 8-12 次即可获得传承</div></div>';
+      } else {
+        html += '<div class="tc-desc">'+r.desc+'</div>';
+        html += '<div style="background:rgba(201,169,110,.1);border-radius:8px;padding:10px;margin-bottom:10px;text-align:center">';
+        html += '<div style="font-size:13px;color:var(--gold2)">目标总量：<span style="font-size:18px;font-weight:700">'+r.target+'</span></div></div>';
+      }
+      html += '<div class="tc-reward">灵力馈赠：+'+r.reward+'</div>';
+    }
+    html += '<div style="font-size:11px;color:var(--text2);text-align:center;margin-top:8px">⏳ '+expiresIn+' · 过期自动消散</div>';
+    html += '<button class="tc-btn" onclick="completeSecretRealm()" style="margin-top:10px">🏛️ 踏入秘境</button>';
+    html += '</div>';
+  } else {
+    // No active realm - peaceful state
+    var historyCount = appData.secretRealm ? appData.secretRealm.history.length : 0;
+    html += '<div style="text-align:center;padding:60px 20px">';
+    html += '<div style="font-size:48px;margin-bottom:16px;opacity:.6">🏛️</div>';
+    html += '<h3 style="font-size:18px;color:var(--text2);margin-bottom:8px">天地平静，灵气安宁</h3>';
+    html += '<p style="font-size:14px;color:var(--text2);line-height:1.6">修炼不止，机缘自来。<br>继续修炼，当天地灵气汇聚之时，<br>新的秘境入口自会在你面前显现。</p>';
+    if(historyCount > 0){
+      html += '<div style="margin-top:20px;text-align:left">';
+      html += '<div style="font-size:14px;color:var(--gold2);margin-bottom:8px">📖 历次秘境记录</div>';
+      appData.secretRealm.history.forEach(function(h){
+        html += '<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03)">';
+        html += '<span>'+h.date.slice(5)+' · '+h.title+'</span>';
+        html += '<span style="float:right;color:var(--gold-bright)">+'+h.reward+'</span></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function completeSecretRealm(){
+  var sr = appData.secretRealm;
+  if(!sr || !sr.active || sr.active.completed) return;
+  
+  var r = sr.active;
+  var reward = r.sub ? r.sub.reward : (r.reward || 30);
+  
+  // For trial realm, check if user actually trained
+  if(r.type === 'trial' && r.exName){
+    var today = getTodayStr();
+    var trainedToday = appData.sessions.some(function(s){ return s.date === today; });
+    if(!trainedToday){
+      if(!confirm('你尚未完成今日修炼。踏入秘境前先完成推荐训练，灵力吸收效果更佳。\n\n直接领取灵力馈赠（减半）？')){
+        showToast('🧘 秘境静候你的到来，修炼完后再来不迟');
+        return;
+      }
+      reward = Math.round(reward * 0.5);
+    }
+  }
+  
+  // Mark completed
+  r.completed = true;
+  r.completedAt = getTodayStr();
+  if(!sr.history) sr.history = [];
+  sr.history.push({ date:getTodayStr(), title:r.title||r.sub?.title||'秘境', reward:reward });
+  sr.active = null;
+  
+  // Award qi
   appData.totalQi += reward;
   appData.todayQi = (appData.todayQi || 0) + reward;
   saveData();
   
-  renderTribulation();
+  renderSecretRealm();
   updateHeader();
   renderRealm();
-  
-  // Show success toast
-  showToast('⚡ 劫云散去，天道降下金光！道友成功渡劫，灵力 +'+reward+'！');
+  updateRealmBadge();
+  showToast('🏛️ 秘境探索完成！灵力 +'+reward+'，天地法则在你身上又深了一层共鸣');
 }
 
-function completeTribulationLarge(){
-  const today = getTodayStr();
-  const weekStart = getWeekStart(today);
-  const trib = window._currentLargeTrib;
-  const reward = trib ? trib.reward : 80;
-  
-  if(!appData.tribulations) appData.tribulations = { small:[], large:[] };
-  appData.tribulations.large.push({
-    week: weekStart,
-    reward: reward,
-    completed: true
-  });
-  
-  appData.totalQi += reward;
-  appData.todayQi = (appData.todayQi || 0) + reward;
-  saveData();
-  
-  renderTribulation();
-  updateHeader();
-  renderRealm();
-  
-  showToast('🔥 大天劫渡尽！天道震动，降下巨额灵力 +'+reward+'！');
+function updateRealmBadge(){
+  var badge = document.getElementById('realm-badge');
+  if(!badge) return;
+  var sr = appData.secretRealm;
+  var hasActive = sr && sr.active && !sr.active.completed;
+  if(sr && sr.active && sr.active.expiresAt && sr.active.expiresAt < getTodayStr()){
+    sr.active = null;
+    saveData();
+    hasActive = false;
+  }
+  badge.style.display = hasActive ? 'block' : 'none';
 }
 
+// Keep getYesterdayStr for backwards compat
 function getYesterdayStr(){
-  const d = new Date();
+  var d = new Date();
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0,10);
 }
