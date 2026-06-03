@@ -1388,6 +1388,11 @@ function renderTraining(){
   // Compact route hint
   renderRouteHint();
 
+  // Auto-populate from route plan if training list is empty and route is active
+  if(currentTraining.length === 0 && appData.trainingRoute && appData.trainingRoute !== 'none' && !hasSessionToday){
+    autoPopulateTraining();
+  }
+
   // Populate exercise select
   const sel = document.getElementById('exercise-select');
   sel.innerHTML = '<option value="">选择功法…</option>';
@@ -1803,19 +1808,20 @@ function renderRouteHint(){
   if(!routeArea) return;
   const plan = getTodayPlan();
   if(plan){
-    var hasMissing = false;
+    var loadedCount = 0;
     plan.exercises.forEach(function(exName){
       const exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
       if(exIdx === -1) return;
       var found = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
-      if(!found) hasMissing = true;
+      if(found) loadedCount++;
     });
+    var allLoaded = loadedCount >= plan.exercises.length;
     var routeName = '凡骨淬体法';
-ROUTES.forEach(function(r){ if(r.id===appData.trainingRoute) routeName=r.name; });
-routeArea.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
+    ROUTES.forEach(function(r){ if(r.id===appData.trainingRoute) routeName=r.name; });
+    routeArea.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
       + '<span style="color:var(--gold2)">🗺️ '+routeName+' · '+plan.dayName+'</span>'
       + ' · <span>'+plan.plan.weekFreq+'</span>'
-      + (hasMissing ? '<button onclick="addRoutePlanExercises()" style="margin-left:auto;padding:4px 10px;border:none;border-radius:6px;background:rgba(201,169,110,.15);color:var(--gold);font-size:11px;cursor:pointer">＋ 一键添加</button>' : '')
+      + (allLoaded ? '<span style="margin-left:auto;color:var(--success);font-size:11px">✅ 今日计划已加载</span>' : '')
       + '</div>';
   } else {
     routeArea.innerHTML = '';
@@ -2591,6 +2597,29 @@ const ROUTE_PLANS = {
   custom: null,
 };
 
+function getTodayPlanForDate(dateStr){
+  var routeId = appData.trainingRoute;
+  if(!routeId || routeId === 'none') return null;
+  if(routeId === 'custom'){
+    if(appData.customRoutePlan && appData.customRoutePlan.days && appData.customRoutePlan.days.length > 0){
+      var days = appData.customRoutePlan.days;
+      var startDate = appData.sessions.length > 0 ? appData.sessions[0].date : dateStr;
+      var dayIdx = daysBetween(startDate, dateStr) % days.length;
+      var day = days[dayIdx];
+      if(dayIdx < 0) return null;
+      return { dayName: day.name || '训练日', exercises: day.exercises || [] };
+    }
+    return null;
+  }
+  var plan = ROUTE_PLANS[routeId];
+  if(!plan) return null;
+  var startDate = appData.sessions.length > 0 ? appData.sessions[0].date : dateStr;
+  var daysSinceStart = daysBetween(startDate, dateStr);
+  var dayName = plan.getDay(daysSinceStart);
+  var exNames = plan.exercises[dayName] || [];
+  return { dayName: dayName, exercises: exNames };
+}
+
 function getTodayPlan(){
   const routeId = appData.trainingRoute;
   if(!routeId || routeId === 'none') return null;
@@ -2696,6 +2725,40 @@ function showRouteDetail(routeId){
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+}
+
+function autoPopulateTraining(){
+  var plan = getTodayPlan();
+  if(!plan || !plan.exercises || plan.exercises.length === 0) return;
+  plan.exercises.forEach(function(exName){
+    var exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
+    if(exIdx === -1) return;
+    var exists = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
+    if(!exists){
+      // Smart weight prefill: get last used weight
+      var lastWeight = getLastWeight(exName);
+      var eq = DEFAULT_EQUIPMENT[exName] || 'barbell';
+      currentTraining.push({ exerciseIdx: exIdx, sets: [{ reps: 10, weight: lastWeight, completed:false }], equipment: eq });
+    }
+  });
+}
+
+function getLastWeight(exName){
+  // Search most recent session for this exercise
+  for(var i = appData.sessions.length-1; i >= 0; i--){
+    var s = appData.sessions[i];
+    for(var j = 0; j < s.exercises.length; j++){
+      var item = s.exercises[j];
+      var e = appData.exercises[item.exerciseIdx];
+      if(e && e.name === exName && item.sets && item.sets.length > 0){
+        // Return average weight of last session
+        var totalW = 0, countW = 0;
+        item.sets.forEach(function(set){ if(set.weight){ totalW += set.weight; countW++; } });
+        if(countW > 0) return Math.round(totalW / countW);
+      }
+    }
+  }
+  return 0;
 }
 
 function addRoutePlanExercises(){
@@ -3212,6 +3275,71 @@ function renderAtlas(){
   }
   html += '</div>';
   
+  // Weekly training calendar
+  html += '<div class="atlas-section">';
+  html += '<h3>📋 本周修炼日志</h3>';
+  var todayStr = getTodayStr();
+  var d = new Date();
+  var dayOfWeek = d.getDay();
+  // Monday = 1, Sunday = 0 → adjust to Mon=0
+  var monOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  var weekDays = ['周一','周二','周三','周四','周五','周六','周日'];
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px">';
+  for(var wi=0; wi<7; wi++){
+    var dateObj = new Date(d);
+    dateObj.setDate(d.getDate() - monOffset + wi);
+    var dateStr = dateObj.toISOString().slice(0,10);
+    var isToday = dateStr === todayStr;
+    var daySessions = appData.sessions.filter(function(s){ return s.date === dateStr; });
+    var totalQiDay = 0;
+    daySessions.forEach(function(s){ totalQiDay += s.totalQi || 0; });
+    var hasPlan = false;
+    // Check if route plan says we should train today
+    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
+      var plan = getTodayPlanForDate(dateStr);
+      if(plan && plan.exercises && plan.exercises.length > 0) hasPlan = true;
+    }
+    var isFuture = dateStr > todayStr;
+    html += '<div style="text-align:center;padding:6px 2px;border-radius:8px;font-size:11px;'+(isToday?'background:rgba(201,169,110,.15);border:1px solid var(--gold)':'')+'">';
+    html += '<div style="color:var(--text2);margin-bottom:2px">'+weekDays[wi]+'</div>';
+    if(daySessions.length > 0){
+      html += '<div style="color:var(--success);font-weight:700">✅</div>';
+      html += '<div style="color:var(--gold-bright);font-size:10px">+'+totalQiDay+'</div>';
+    } else if(isFuture){
+      if(hasPlan) html += '<div style="color:var(--gold);font-size:10px">📋计划</div>';
+      else html += '<div style="color:var(--text2);font-size:10px">—</div>';
+    } else {
+      if(hasPlan) html += '<div style="color:var(--warm);font-size:10px">⏳未练</div>';
+      else html += '<div style="color:var(--text2);font-size:10px">—</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  // Planned vs actual summary
+  var weekTotalQi = 0;
+  var weekPlanned = 0;
+  var weekActual = 0;
+  for(var wi=0; wi<7; wi++){
+    var dateObj = new Date(d);
+    dateObj.setDate(d.getDate() - monOffset + wi);
+    var dateStr = dateObj.toISOString().slice(0,10);
+    var daySessions = appData.sessions.filter(function(s){ return s.date === dateStr; });
+    daySessions.forEach(function(s){ weekTotalQi += s.totalQi || 0; });
+    if(daySessions.length > 0) weekActual++;
+    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
+      var plan = getTodayPlanForDate(dateStr);
+      if(plan && plan.exercises && plan.exercises.length > 0 && dateStr <= todayStr) weekPlanned++;
+    }
+  }
+  if(weekActual > 0 || weekPlanned > 0){
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">';
+    html += '<span>本周修炼 <span style="color:var(--success);font-weight:600">'+weekActual+'</span> 天</span>';
+    if(weekPlanned > 0) html += '<span>计划完成 <span style="color:'+(weekActual>=weekPlanned?'var(--success)':'var(--warm)')+';font-weight:600">'+weekActual+'/'+weekPlanned+'</span></span>';
+    html += '<span>总灵力 <span style="color:var(--gold-bright);font-weight:600">'+weekTotalQi+'</span></span>';
+    html += '</div>';
+  }
+  html += '</div>';
+
   // Timeline (realm breakthroughs)
   html += '<div class="atlas-section">';
   html += '<h3>🏔️ 境界突破时间线</h3>';
