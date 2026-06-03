@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>凡人训练传</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#1a1a2e;
+  --card:#16213e;
+  --card2:#0f3460;
+  --gold:#c9a96e;
+  --gold2:#e8c170;
+  --gold-bright:#ffd700;
+  --warm:#f0c060;
+  --danger:#8b0000;
+  --text:#e0d5c1;
+  --text2:#9a8c7a;
+  --success:#5cb85c;
+  --radius:14px;
+  --nav-h:64px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --header-h:72px;
+  --shadow:0 4px 20px rgba(0,0,0,.4);
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC",sans-serif;
+  background:var(--bg);color:var(--text);overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+
+/* ============ ONBOARDING OVERLAY ============ */
+#onboarding-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0f0f23 0%,#1a1a2e 50%,#16213e 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;overflow-y:auto;
+  animation:fadeIn .6s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(201,169,110,.3)}50%{box-shadow:0 0 20px rgba(201,169,110,.6)}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes qiRise{from{transform:translateY(0);opacity:1}to{transform:translateY(-40px);opacity:0}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes borderGlow{0%,100%{border-color:rgba(201,169,110,.3)}50%{border-color:rgba(201,169,110,.8)}}
+@keyframes breakthrough{0%{transform:scale(.3);opacity:0}50%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+
+.onboarding-step{display:none;width:100%;max-width:400px;animation:slideUp .5s ease}
+.onboarding-step.active{display:block}
+.onboarding-step h1{font-size:28px;font-weight:700;text-align:center;margin-bottom:12px;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif;letter-spacing:2px}
+.onboarding-step p{text-align:center;color:var(--text2);font-size:15px;line-height:1.6;margin-bottom:24px}
+.onboarding-step .subtitle{font-size:14px;color:var(--text2);text-align:center;margin-bottom:20px;line-height:1.5}
+
+.ob-btn{display:block;width:100%;padding:14px;margin-bottom:10px;border:1px solid rgba(201,169,110,.3);border-radius:var(--radius);background:var(--card);color:var(--text);font-size:15px;cursor:pointer;text-align:left;transition:all .2s}
+.ob-btn:hover,.ob-btn:active{background:var(--card2);border-color:var(--gold);transform:scale(1.01)}
+.ob-btn.selected{background:rgba(201,169,110,.15);border-color:var(--gold);box-shadow:0 0 12px rgba(201,169,110,.2)}
+.ob-btn .ob-label{font-weight:600;display:block;margin-bottom:4px}
+.ob-btn .ob-desc{font-size:13px;color:var(--text2)}
+
+.ob-input-group{margin-bottom:16px}
+.ob-input-group label{display:block;font-size:14px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.ob-input-group input{width:100%;padding:12px 14px;border:1px solid rgba(201,169,110,.2);border-radius:10px;background:var(--card);color:var(--text);font-size:16px;outline:none;transition:border-color .2s}
+.ob-input-group input:focus{border-color:var(--gold);box-shadow:0 0 8px rgba(201,169,110,.2)}
+.ob-input-group .hint{font-size:12px;color:var(--text2);margin-top:4px}
+
+.ob-gender-group{display:flex;gap:10px}
+.ob-gender-btn{flex:1;padding:12px;border:1px solid rgba(201,169,110,.2);border-radius:10px;background:var(--card);color:var(--text);font-size:15px;cursor:pointer;text-align:center;transition:all .2s}
+.ob-gender-btn.selected{background:rgba(201,169,110,.15);border-color:var(--gold)}
+
+.ob-next-btn{display:block;width:100%;padding:16px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:17px;font-weight:700;cursor:pointer;margin-top:12px;transition:all .2s}
+.ob-next-btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(201,169,110,.4)}
+.ob-next-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.ob-skip{display:block;text-align:center;color:var(--text2);font-size:13px;margin-top:12px;cursor:pointer;background:none;border:none;width:100%}
+.ob-skip:hover{color:var(--text)}
+
+#ob-result-card{
+  background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px;text-align:center;
+}
+#ob-result-card .talent-name{font-size:36px;font-weight:700;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif;margin-bottom:8px}
+#ob-result-card .talent-label{font-size:14px;color:var(--text2);margin-bottom:12px}
+#ob-result-card .talent-desc{font-size:15px;line-height:1.7;color:var(--text);font-style:italic;padding:12px 0;border-top:1px solid rgba(201,169,110,.15)}
+#ob-result-card .realm-result{font-size:18px;color:var(--gold);margin-top:12px}
+
+/* ============ MAIN APP ============ */
+#main-app{display:none;min-height:100vh;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 16px)}
+
+/* Header */
+#app-header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--bg);padding:12px 16px 8px;max-width:480px;margin:0 auto;
+}
+#header-realm{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;
+}
+#header-realm .realm-name{font-size:17px;font-weight:700;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif}
+#header-realm .realm-stage{font-size:13px;color:var(--text2)}
+#realm-progress-wrap{height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-bottom:4px}
+#realm-progress{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:3px;transition:width .5s ease;width:0%}
+#realm-progress-text{font-size:11px;color:var(--text2);text-align:right}
+
+/* Warning bar */
+.warning-bar{
+  padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.5;
+  margin-bottom:10px;animation:slideUp .3s ease;
+}
+.warning-bar.warm{background:rgba(240,192,96,.12);color:var(--warm);border:1px solid rgba(240,192,96,.25)}
+.warning-bar.danger{background:rgba(139,0,0,.15);color:#ff6b6b;border:1px solid rgba(139,0,0,.3)}
+
+/* Pages */
+.page{display:none;padding-top:calc(var(--header-h) + 16px);max-width:480px;margin:0 auto;animation:fadeIn .3s ease}
+.page.active{display:block}
+
+/* Bottom Nav */
+#bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:var(--card);border-top:1px solid rgba(255,255,255,.06);
+  padding:6px 0 calc(6px + var(--safe-bottom));
+  display:flex;justify-content:space-around;max-width:480px;margin:0 auto;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:none;color:var(--text2);font-size:11px;cursor:pointer;
+  padding:4px 12px;transition:color .2s;border-radius:8px;
+  min-width:56px;min-height:44px;
+}
+.nav-btn .nav-icon{font-size:20px;line-height:1}
+.nav-btn.active{color:var(--gold2)}
+.nav-btn.active .nav-icon{text-shadow:0 0 10px rgba(201,169,110,.4)}
+
+/* ============ PAGE: REALM (洞府) ============ */
+.realm-header-card{
+  background:linear-gradient(135deg,var(--card),var(--card2));
+  border-radius:var(--radius);padding:20px;margin-bottom:12px;
+  border:1px solid rgba(201,169,110,.1);
+}
+.realm-header-card .big-realm{font-size:22px;font-weight:700;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif}
+.realm-header-card .qi-today{font-size:14px;color:var(--text2);margin-top:4px}
+.realm-header-card .qi-today span{color:var(--gold-bright);font-weight:700;font-size:18px}
+.realm-header-card .consecutive{font-size:14px;color:var(--text2);margin-top:4px}
+.realm-header-card .consecutive span{color:var(--gold);font-weight:600}
+
+.start-training-btn{
+  display:block;width:100%;padding:18px;border:none;border-radius:var(--radius);
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#1a1a2e;font-size:18px;font-weight:700;cursor:pointer;
+  margin-bottom:12px;transition:all .2s;letter-spacing:2px;
+}
+.start-training-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(201,169,110,.35)}
+.start-training-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.start-training-btn.rest-suggest{background:linear-gradient(135deg,var(--warm),#d4a040);animation:glowPulse 2s infinite}
+
+/* Rest day */
+.rest-card{
+  background:linear-gradient(135deg,rgba(240,192,96,.08),rgba(201,169,110,.05));
+  border:1px solid rgba(240,192,96,.25);border-radius:var(--radius);padding:16px;margin-bottom:12px;
+}
+.rest-card .rest-title{font-size:16px;font-weight:600;color:var(--warm);margin-bottom:10px;text-align:center}
+.rest-card .rest-title .emoji{font-size:24px}
+.rest-options{display:flex;flex-direction:column;gap:8px}
+.rest-option{
+  padding:12px;border-radius:10px;border:1px solid rgba(240,192,96,.15);
+  background:rgba(0,0,0,.2);cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:10px;
+}
+.rest-option:hover,.rest-option:active{border-color:var(--warm);background:rgba(240,192,96,.08)}
+.rest-option .ro-icon{font-size:22px}
+.rest-option .ro-text{flex:1}
+.rest-option .ro-text .ro-name{font-size:14px;font-weight:600;color:var(--text)}
+.rest-option .ro-text .ro-desc{font-size:12px;color:var(--text2)}
+.rest-option .ro-btn{padding:6px 14px;border:none;border-radius:8px;background:var(--warm);color:#1a1a2e;font-size:13px;font-weight:600;cursor:pointer}
+
+/* Quote */
+.quote-card{
+  background:var(--card);border-radius:var(--radius);padding:16px;
+  border-left:3px solid var(--gold);margin-bottom:12px;
+}
+.quote-card .quote-text{font-size:14px;line-height:1.6;color:var(--text);font-style:italic}
+.quote-card .quote-source{font-size:12px;color:var(--text2);margin-top:6px;text-align:right}
+
+/* ============ PAGE: TRAINING (修炼) ============ */
+.training-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.training-header h2{font-size:18px;color:var(--gold2)}
+.training-header .today-qi{font-size:13px;color:var(--text2)}
+.training-header .today-qi span{color:var(--gold-bright);font-weight:700}
+
+.exercise-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.exercise-card{
+  background:var(--card);border-radius:var(--radius);padding:14px;
+  border:1px solid rgba(201,169,110,.1);transition:all .2s;
+}
+.exercise-card .ec-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.exercise-card .ec-name{font-size:16px;font-weight:600}
+.exercise-card .ec-name .emoji{margin-right:6px}
+.exercise-card .ec-muscle{font-size:12px;color:var(--text2);background:rgba(201,169,110,.1);padding:2px 8px;border-radius:4px}
+.exercise-card .ec-sets{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.exercise-card .ec-sets input{
+  width:52px;padding:6px 8px;border:1px solid rgba(201,169,110,.15);border-radius:6px;
+  background:rgba(0,0,0,.3);color:var(--text);font-size:14px;text-align:center;outline:none;
+}
+.exercise-card .ec-sets input:focus{border-color:var(--gold)}
+.exercise-card .ec-sets label{font-size:12px;color:var(--text2)}
+.exercise-card .ec-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.exercise-card .ec-actions button{
+  padding:6px 14px;border:none;border-radius:6px;font-size:13px;cursor:pointer;transition:all .2s;
+  min-height:36px;
+}
+.btn-add-set{background:rgba(201,169,110,.15);color:var(--gold)}
+.btn-add-set:hover{background:rgba(201,169,110,.25)}
+.btn-remove{background:rgba(139,0,0,.2);color:#ff6b6b}
+.btn-remove:hover{background:rgba(139,0,0,.35)}
+.btn-remove-exercise{background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px}
+
+.add-exercise-bar{
+  display:flex;gap:8px;margin-bottom:16px;
+}
+.add-exercise-bar select{
+  flex:1;padding:12px;border:1px solid rgba(201,169,110,.2);border-radius:10px;
+  background:var(--card);color:var(--text);font-size:14px;outline:none;
+}
+.add-exercise-bar button{
+  padding:12px 18px;border:none;border-radius:10px;background:var(--gold);color:#1a1a2e;
+  font-weight:600;cursor:pointer;white-space:nowrap;min-height:44px;
+}
+
+.end-training-btn{
+  display:block;width:100%;padding:16px;border:none;border-radius:var(--radius);
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;
+  transition:all .2s;
+}
+.end-training-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Qi float animation */
+.qi-float{
+  position:fixed;pointer-events:none;z-index:999;
+  font-size:22px;font-weight:700;color:var(--gold-bright);
+  text-shadow:0 0 8px rgba(255,215,0,.5);
+  animation:qiRise 1s ease-out forwards;
+}
+
+/* ============ PAGE: SKILLS (功法) ============ */
+.skills-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.skills-header h2{font-size:18px;color:var(--gold2)}
+.skills-header button{background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.3);color:var(--gold);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;min-height:40px}
+.skill-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid rgba(201,169,110,.1);transition:all .2s}
+.skill-card .sc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.skill-card .sc-name{font-size:16px;font-weight:600}
+.skill-card .sc-name .alias{font-size:12px;color:var(--text2);font-weight:400}
+.skill-card .sc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.skill-tag{padding:2px 8px;border-radius:4px;font-size:11px}
+.skill-tag.muscle{background:rgba(201,169,110,.1);color:var(--gold)}
+.skill-tag.grade{background:rgba(92,184,92,.1);color:var(--success)}
+.skill-tag.prof{background:rgba(240,192,96,.1);color:var(--warm)}
+.skill-card .sc-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text2)}
+.skill-card .sc-stats span{white-space:nowrap}
+
+/* Route selection */
+.route-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid rgba(201,169,110,.1);cursor:pointer;transition:all .2s}
+.route-card:hover,.route-card:active{border-color:var(--gold)}
+.route-card.selected{background:rgba(201,169,110,.08);border-color:var(--gold)}
+.route-card .rc-name{font-size:16px;font-weight:600;color:var(--gold2)}
+.route-card .rc-desc{font-size:13px;color:var(--text2);margin-top:4px}
+.route-card .rc-info{font-size:12px;color:var(--text2);margin-top:4px}
+
+/* Custom exercise form */
+.custom-ex-form{padding:16px;background:var(--card);border-radius:var(--radius);margin-bottom:12px;border:1px solid rgba(201,169,110,.15)}
+.custom-ex-form h3{font-size:15px;color:var(--gold2);margin-bottom:10px}
+.custom-ex-form .cef-row{display:flex;gap:8px;margin-bottom:8px}
+.custom-ex-form input,.custom-ex-form select{flex:1;padding:10px;border:1px solid rgba(201,169,110,.15);border-radius:8px;background:rgba(0,0,0,.3);color:var(--text);font-size:14px;outline:none}
+.custom-ex-form input:focus,.custom-ex-form select:focus{border-color:var(--gold)}
+.custom-ex-form button{padding:10px 18px;border:none;border-radius:8px;background:var(--gold);color:#1a1a2e;font-weight:600;cursor:pointer;min-height:40px}
+
+/* ============ PAGE: TRIBULATION (天劫) ============ */
+.trib-header{text-align:center;margin-bottom:16px}
+.trib-header h2{font-size:20px;color:var(--gold2);font-family:"Noto Serif SC","Songti SC",serif}
+.trib-header p{font-size:13px;color:var(--text2);margin-top:4px}
+.trib-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15);transition:all .2s}
+.trib-card .tc-type{font-size:12px;color:var(--text2);margin-bottom:4px}
+.trib-card .tc-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
+.trib-card .tc-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.trib-card .tc-reward{font-size:13px;color:var(--gold-bright);margin-bottom:10px}
+.trib-card .tc-btn{padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:14px;font-weight:600;cursor:pointer;width:100%;min-height:44px;transition:all .2s}
+.trib-card .tc-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,169,110,.3)}
+.trib-card .tc-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.trib-card .tc-btn.done{background:rgba(92,184,92,.2);color:var(--success);cursor:default}
+.trib-card .tc-btn.recovery{background:rgba(240,192,96,.15);color:var(--warm)}
+.trib-completed{text-align:center;padding:24px;color:var(--success)}
+.trib-completed .tc-icon{font-size:36px;margin-bottom:8px}
+
+/* ============ PAGE: ATLAS (图谱) ============ */
+.atlas-section{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(201,169,110,.1)}
+.atlas-section h3{font-size:16px;color:var(--gold2);margin-bottom:10px;font-family:"Noto Serif SC","Songti SC",serif}
+.atlas-stat-row{display:flex;justify-content:space-around;margin:12px 0;flex-wrap:wrap;gap:8px}
+.atlas-stat{text-align:center;flex:1;min-width:80px}
+.atlas-stat .as-value{font-size:24px;font-weight:700;color:var(--gold-bright)}
+.atlas-stat .as-label{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* Timeline */
+.timeline{position:relative;padding-left:24px;margin:12px 0}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:rgba(201,169,110,.2)}
+.timeline-item{position:relative;padding:8px 0 8px 16px;border-left:2px solid var(--gold);margin-bottom:8px}
+.timeline-item::before{content:'●';position:absolute;left:-9px;top:8px;color:var(--gold);font-size:14px}
+.timeline-item .ti-date{font-size:11px;color:var(--text2)}
+.timeline-item .ti-text{font-size:13px;color:var(--text);margin-top:2px}
+
+/* Chart bar */
+.chart-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.chart-bar-wrap .chart-label{font-size:12px;color:var(--text2);width:60px;text-align:right;flex-shrink:0}
+.chart-bar-track{flex:1;height:20px;background:rgba(255,255,255,.05);border-radius:10px;overflow:hidden;position:relative}
+.chart-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:10px;transition:width .5s ease;min-width:4px}
+.chart-bar-value{font-size:11px;color:var(--text2);width:40px;text-align:left}
+
+/* Muscle distribution */
+.muscle-bar{margin-bottom:8px}
+.muscle-bar .mb-label{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;justify-content:space-between}
+.muscle-bar .mb-track{height:12px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden}
+.muscle-bar .mb-fill{height:100%;border-radius:6px;transition:width .5s ease}
+
+/* Leaderboard */
+.lb-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15)}
+.lb-card h3{font-size:16px;color:var(--gold2);margin-bottom:10px;text-align:center}
+.lb-entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.lb-entry:last-child{border-bottom:none}
+.lb-entry .lb-rank{width:24px;text-align:center;font-size:13px;font-weight:700;color:var(--text2)}
+.lb-entry .lb-rank.gold{color:var(--gold)}
+.lb-entry .lb-rank.silver{color:#c0c0c0}
+.lb-entry .lb-rank.bronze{color:#cd7f32}
+.lb-entry .lb-rank.self{color:var(--gold-bright)}
+.lb-entry .lb-name{flex:1;font-size:14px}
+.lb-entry .lb-name.self{color:var(--gold-bright);font-weight:600}
+.lb-entry .lb-qi{font-size:13px;color:var(--gold-bright)}
+.lb-entry .lb-realm{font-size:11px;color:var(--text2)}
+
+/* Achievements */
+.achievement-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.achievement-item{background:rgba(201,169,110,.05);border:1px solid rgba(201,169,110,.1);border-radius:10px;padding:10px;text-align:center;transition:all .2s}
+.achievement-item.unlocked{border-color:var(--gold);background:rgba(201,169,110,.1)}
+.achievement-item.locked{opacity:.4}
+.achievement-item .ai-icon{font-size:24px;margin-bottom:4px}
+.achievement-item .ai-name{font-size:11px;color:var(--text);line-height:1.3}
+.achievement-item.locked .ai-icon{filter:grayscale(1)}
+
+/* Weight editor */
+.weight-edit{display:flex;gap:8px;align-items:center;margin-top:8px}
+.weight-edit input{width:80px;padding:8px;border:1px solid rgba(201,169,110,.2);border-radius:8px;background:rgba(0,0,0,.3);color:var(--text);font-size:14px;text-align:center;outline:none}
+.weight-edit input:focus{border-color:var(--gold)}
+.weight-edit button{padding:8px 16px;border:none;border-radius:8px;background:var(--gold);color:#1a1a2e;font-weight:600;cursor:pointer;min-height:40px}
+
+/* ============ PLACEHOLDER (图谱) ============ */
+.placeholder-page{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 24px;text-align:center;min-height:50vh;
+}
+.placeholder-page .placeholder-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+.placeholder-page h3{font-size:18px;color:var(--gold2);margin-bottom:8px}
+.placeholder-page p{font-size:14px;color:var(--text2);line-height:1.6}
+
+/* ============ MODALS ============ */
+.modal-overlay{
+  position:fixed;inset:0;z-index:5000;
+  background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;
+  padding:24px;backdrop-filter:blur(4px);
+}
+.modal-overlay.active{display:flex}
+.modal-card{
+  background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);
+  padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;
+  animation:breakthrough .5s ease;
+}
+.modal-card h2{font-size:20px;color:var(--gold2);text-align:center;margin-bottom:12px;font-family:"Noto Serif SC","Songti SC",serif}
+.modal-card .modal-body{font-size:14px;line-height:1.7;color:var(--text);margin-bottom:16px}
+.modal-card .modal-body .big-num{font-size:28px;font-weight:700;color:var(--gold-bright);text-align:center;margin:12px 0}
+.modal-card .modal-btn{
+  display:block;width:100%;padding:14px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;
+  font-size:16px;font-weight:700;cursor:pointer;margin-top:12px;
+}
+
+/* Breakthrough special */
+.bt-overlay{background:rgba(26,26,46,.85)}
+.bt-card{border-color:var(--gold2);text-align:center}
+.bt-card .bt-narrative{font-size:15px;line-height:1.8;color:var(--text);margin-bottom:16px;font-style:italic}
+.bt-card .bt-narrative p{margin-bottom:8px}
+.bt-card .bt-narrative .boom{font-size:20px;font-weight:700;color:var(--gold-bright)}
+
+/* Summary */
+.summary-stats{display:flex;justify-content:space-around;margin:16px 0}
+.summary-stat{text-align:center}
+.summary-stat .ss-value{font-size:28px;font-weight:700;color:var(--gold-bright)}
+.summary-stat .ss-label{font-size:12px;color:var(--text2);margin-top:4px}
+.summary-pr{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:10px;padding:12px;text-align:center;margin-bottom:12px}
+.summary-pr .pr-text{font-size:16px;color:var(--gold-bright);font-weight:700}
+.summary-pr .pr-bonus{font-size:13px;color:var(--text2);margin-top:4px}
+.summary-warning{background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--warm);text-align:center}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:360px){
+  .onboarding-step h1{font-size:24px}
+  .realm-header-card .big-realm{font-size:19px}
+  .exercise-card .ec-sets input{width:44px;font-size:13px}
+}
+@media(min-width:480px){
+  body{background:#0f0f23}
+  #main-app,#onboarding-overlay{max-width:480px;margin:0 auto}
+}
+
+/* Muscle group warning flashing */
+@keyframes warnPulse{0%,100%{border-color:rgba(240,192,96,.2)}50%{border-color:rgba(240,192,96,.6)}}
+.muscle-warn{border-color:var(--warm)!important;animation:warnPulse 1.5s infinite}
+
+/* Hidden utility */
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ==================== ONBOARDING ==================== -->
+<div id="onboarding-overlay">
+  <!-- Step 1: Welcome -->
+  <div class="onboarding-step active" data-step="1">
+    <div style="text-align:center;font-size:64px;margin-bottom:16px;animation:float 3s ease-in-out infinite">🏔️</div>
+    <h1>天地初开，灵力涌动</h1>
+    <p style="font-size:16px">凡人，请上前测试根骨——<br>你的修行之路，始于今日。</p>
+    <button class="ob-next-btn" onclick="goObStep(2)">开始根骨测试</button>
+  </div>
+
+  <!-- Step 2: Experience -->
+  <div class="onboarding-step" data-step="2">
+    <h1>修炼年限</h1>
+    <p>你在修行之道上走了多远？</p>
+    <button class="ob-btn" data-val="beginner" onclick="selectOb(this,'experience')">
+      <span class="ob-label">🌱 初涉修行</span>
+      <span class="ob-desc">刚开始健身，不足 3 月</span>
+    </button>
+    <button class="ob-btn" data-val="3-12months" onclick="selectOb(this,'experience')">
+      <span class="ob-label">🌿 略有小成</span>
+      <span class="ob-desc">3 月 ~ 1 年</span>
+    </button>
+    <button class="ob-btn" data-val="1-3years" onclick="selectOb(this,'experience')">
+      <span class="ob-label">🌳 根基稳固</span>
+      <span class="ob-desc">1 ~ 3 年</span>
+    </button>
+    <button class="ob-btn" data-val="3+years" onclick="selectOb(this,'experience')">
+      <span class="ob-label">🌲 修道老手</span>
+      <span class="ob-desc">3 年以上</span>
+    </button>
+  </div>
+
+  <!-- Step 3: PR data (optional) -->
+  <div class="onboarding-step" data-step="3">
+    <h1>当前战力</h1>
+    <p>诚实为上，虚报战力只会误己修行。<br>不知者留空即可。</p>
+    <div class="ob-input-group">
+      <label>🦵 深蹲 ___ kg</label>
+      <input type="number" id="ob-squat" placeholder="留空跳过" min="0">
+    </div>
+    <div class="ob-input-group">
+      <label>🏋️ 卧推 ___ kg</label>
+      <input type="number" id="ob-bench" placeholder="留空跳过" min="0">
+    </div>
+    <div class="ob-input-group">
+      <label>🔗 硬拉 ___ kg</label>
+      <input type="number" id="ob-deadlift" placeholder="留空跳过" min="0">
+    </div>
+    <div class="ob-input-group">
+      <label>💪 引体向上 ___ 次</label>
+      <input type="number" id="ob-pullup" placeholder="留空跳过" min="0">
+    </div>
+    <button class="ob-next-btn" onclick="goObStep(4)" style="margin-top:8px">确认，下一步 →</button>
+    <button class="ob-skip" onclick="goObStep(4)">跳过 →</button>
+  </div>
+
+  <!-- Step 4: Body stats -->
+  <div class="onboarding-step" data-step="4">
+    <h1>肉身根基</h1>
+    <p>基本体魄数据，缺一不可。</p>
+    <div class="ob-input-group">
+      <label>⚖️ 体重 (kg) <span style="color:var(--gold)">*必填</span></label>
+      <input type="number" id="ob-weight" placeholder="如 70" min="20" max="400">
+    </div>
+    <div class="ob-input-group">
+      <label>性别</label>
+      <div class="ob-gender-group">
+        <button class="ob-gender-btn" data-val="male" onclick="selectGender(this)">♂ 男</button>
+        <button class="ob-gender-btn" data-val="female" onclick="selectGender(this)">♀ 女</button>
+        <button class="ob-gender-btn" data-val="undisclosed" onclick="selectGender(this)">不便透露</button>
+      </div>
+    </div>
+    <button class="ob-next-btn" id="ob-body-next" disabled onclick="calculateTalent()">鉴定根骨</button>
+  </div>
+
+  <!-- Step 5: Result -->
+  <div class="onboarding-step" data-step="5">
+    <h1>鉴定结果</h1>
+    <div id="ob-result-card">
+      <div class="talent-name" id="ob-talent-name">—</div>
+      <div class="talent-label">修仙天赋</div>
+      <div class="realm-result" id="ob-initial-realm">—</div>
+      <div class="talent-desc" id="ob-talent-desc">—</div>
+    </div>
+    <button class="ob-next-btn" onclick="completeOnboarding()">踏入修行之路</button>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="main-app">
+
+  <!-- Header -->
+  <header id="app-header">
+    <div id="header-realm">
+      <span class="realm-name" id="h-realm-name">凡人之躯·初期</span>
+      <span class="realm-stage" id="h-qi-total">0 灵力</span>
+    </div>
+    <div id="realm-progress-wrap">
+      <div id="realm-progress" style="width:0%"></div>
+    </div>
+    <div id="realm-progress-text" style="display:flex;justify-content:space-between">
+      <span id="h-stage-label">初期</span>
+      <span id="h-qi-next">下一境: 100 灵力</span>
+    </div>
+  </header>
+
+  <!-- Warning area -->
+  <div id="warning-area" style="padding-top:calc(var(--header-h) + 8px);max-width:480px;margin:0 auto"></div>
+
+  <!-- ======== PAGE: 洞府 (Realm) ======== -->
+  <section id="page-realm" class="page active">
+    <div class="realm-header-card">
+      <div class="big-realm" id="realm-title">凡人之躯·初期</div>
+      <div class="qi-today">今日获取灵力：<span id="today-qi-display">0</span></div>
+      <div class="consecutive">闭关第 <span id="consecutive-display">0</span> 天</div>
+    </div>
+    <div id="rest-suggestion-area"></div>
+    <button class="start-training-btn" id="start-training-btn" onclick="goToTraining()">开始修炼</button>
+    <div id="rest-card-container"></div>
+    <div id="quote-container"></div>
+  </section>
+
+  <!-- ======== PAGE: 修炼 (Training) ======== -->
+  <section id="page-training" class="page">
+    <div class="training-header">
+      <h2>今日修炼</h2>
+      <div class="today-qi">灵力：<span id="training-qi-display">0</span></div>
+    </div>
+    <div id="muscle-warning-area"></div>
+    <div class="add-exercise-bar">
+      <select id="exercise-select">
+        <option value="">选择功法…</option>
+      </select>
+      <button onclick="addExerciseToTraining()">＋ 添加</button>
+    </div>
+    <div id="training-exercise-list" class="exercise-list"></div>
+    <button class="end-training-btn" id="end-training-btn" onclick="endTraining()" disabled>结束修炼</button>
+  </section>
+
+  <!-- ======== PAGE: 功法 (Skills) ======== -->
+  <section id="page-skills" class="page">
+    <div class="skills-header">
+      <h2>📜 功法阁</h2>
+      <button onclick="toggleRouteSelect()">🗺️ 功法路线</button>
+    </div>
+    <div id="route-selection-area" style="display:none"></div>
+    <div id="custom-exercise-area" style="display:none"></div>
+    <div id="skills-exercise-list"></div>
+  </section>
+
+  <!-- ======== PAGE: 天劫 (Tribulation) ======== -->
+  <section id="page-tribulation" class="page">
+    <div class="trib-header">
+      <h2>⚡ 天劫挑战</h2>
+      <p>天道酬勤，量力而行——渡劫与否，皆由你定</p>
+    </div>
+    <div id="tribulation-content"></div>
+  </section>
+
+  <!-- ======== PAGE: 图谱 (Atlas) ======== -->
+  <section id="page-atlas" class="page">
+    <div id="atlas-content"></div>
+  </section>
+
+  <!-- Bottom Nav -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-page="realm" onclick="switchPage('realm')">
+      <span class="nav-icon">🏠</span>洞府
+    </button>
+    <button class="nav-btn" data-page="training" onclick="switchPage('training')">
+      <span class="nav-icon">⚔️</span>修炼
+    </button>
+    <button class="nav-btn" data-page="skills" onclick="switchPage('skills')">
+      <span class="nav-icon">📜</span>功法
+    </button>
+    <button class="nav-btn" data-page="tribulation" onclick="switchPage('tribulation')">
+      <span class="nav-icon">⚡</span>天劫
+    </button>
+    <button class="nav-btn" data-page="atlas" onclick="switchPage('atlas')">
+      <span class="nav-icon">🗺️</span>图谱
+    </button>
+  </nav>
+</div>
+
+<!-- ==================== BREAKTHROUGH MODAL ==================== -->
+<div class="modal-overlay bt-overlay" id="breakthrough-modal">
+  <div class="modal-card bt-card">
+    <div style="font-size:48px;margin-bottom:12px">✨</div>
+    <h2>境界突破！</h2>
+    <div class="bt-narrative" id="bt-narrative"></div>
+    <button class="modal-btn" onclick="closeBreakthrough()">感天悟道</button>
+  </div>
+</div>
+
+<!-- ==================== PR MODAL ==================== -->
+<div class="modal-overlay" id="pr-modal">
+  <div class="modal-card" style="text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🌟</div>
+    <h2>突破！</h2>
+    <div style="font-size:16px;color:var(--text);line-height:1.6;margin-bottom:16px" id="pr-text">战力新高！</div>
+    <div class="big-num" id="pr-bonus">+100 灵力</div>
+    <button class="modal-btn" onclick="closePR()">继续突破</button>
+  </div>
+</div>
+
+<!-- ==================== TRAINING SUMMARY MODAL ==================== -->
+<div class="modal-overlay" id="summary-modal">
+  <div class="modal-card">
+    <h2>修炼结算</h2>
+    <div id="summary-content"></div>
+    <button class="modal-btn" onclick="closeSummary()">巩固修为</button>
+  </div>
+</div>
+
+<script>
+// ===================================================================
+// DATA MODEL
+// ===================================================================
+const STORAGE_KEY = 'mortalTraining';
+
+const REALMS = [
+  { name:'凡人之躯', threshold:0 },
+  { name:'淬体境', threshold:400 },
+  { name:'开元境', threshold:1000 },
+  { name:'筑基境', threshold:2500 },
+  { name:'金丹境', threshold:5500 },
+  { name:'元婴境', threshold:12000 },
+  { name:'化神境', threshold:25000 },
+  { name:'合体境', threshold:50000 },
+  { name:'渡劫境', threshold:100000 },
+  { name:'真仙之体', threshold:200000 },
+];
+
+const STAGES = ['初期','中期','后期','圆满'];
+
+const PRESET_EXERCISES = [
+  { name:'深蹲', alias:'金刚伏魔深蹲', emoji:'🦵', muscle:'腿', coeff:1.2 },
+  { name:'卧推', alias:'推山填海卧推', emoji:'🏋️', muscle:'胸', coeff:1.1 },
+  { name:'硬拉', alias:'擒龙缚虎硬拉', emoji:'🔗', muscle:'背+腿', coeff:1.2 },
+  { name:'引体向上', alias:'飞升攀云引体', emoji:'💪', muscle:'背', coeff:1.0 },
+  { name:'俯卧撑', alias:'大地沉浮俯卧撑', emoji:'🤲', muscle:'胸', coeff:0.4 },
+  { name:'卷腹', alias:'丹田聚气卷腹', emoji:'🔄', muscle:'核心', coeff:0.3 },
+  { name:'哑铃弯举', alias:'龙臂擎天弯举', emoji:'💪', muscle:'臂', coeff:0.5 },
+  { name:'肩推', alias:'托天镇岳肩推', emoji:'⬆️', muscle:'肩', coeff:0.6 },
+  { name:'划船', alias:'探海擒龙划船', emoji:'🏋️', muscle:'背', coeff:0.7 },
+  { name:'臀桥', alias:'金桥横空臀桥', emoji:'🔄', muscle:'臀', coeff:0.5 },
+];
+
+const NPC_NAMES = [
+  '北冥散人','铁骨罗汉','九霄真人','青莲剑修','金刚护法',
+  '碧落仙子','枯木尊者','烈焰拳宗','寒冰剑圣','归元道人'
+];
+
+const QUOTES = [
+  // 鼓励坚持
+  { text:'「滴水可穿石，凡骨可成仙」', type:'encourage' },
+  { text:'「一日修炼一日功，一日不练十日空」', type:'encourage' },
+  { text:'「凡人之所以为凡，非天赋不足，乃恒心不够也」', type:'encourage' },
+  { text:'「千锤百炼，方成大道」', type:'encourage' },
+  { text:'「修行无捷径，唯有日复一日」', type:'encourage' },
+  // 鼓励休息
+  { text:'「弓弦绷得太紧则易断，修行之道，一张一弛」', type:'rest' },
+  { text:'「上古大能闭关百年，亦需出关透气，何况我等凡人」', type:'rest' },
+  { text:'「灵力需沉淀，今日打坐亦是修炼」', type:'rest' },
+  { text:'「欲速则不达，久修必生心魔」', type:'rest' },
+  { text:'「今日不练，非懈怠也，乃为明日更强之突破积蓄力量」', type:'rest' },
+  // 温和警示
+  { text:'「道友面色微红，灵力激荡，莫不是近日修炼过猛？」', type:'warn' },
+  { text:'「修行如烹小鲜，火候太过则焦，循序渐进方为正道」', type:'warn' },
+  { text:'「经脉微胀，当休则休，莫逞一时之勇」', type:'warn' },
+  { text:'「天道酬勤，亦罚贪功」', type:'warn' },
+  // 突破激励
+  { text:'「轰！瓶颈松动！道友即将踏入新境界！」', type:'breakthrough' },
+  { text:'「天地灵力疯狂涌入，你的肉身正在蜕变！」', type:'breakthrough' },
+  { text:'「此子恐怖如斯！竟在今日突破极限！」', type:'breakthrough' },
+  { text:'「灵力如潮，经脉贯通——又上一层楼！」', type:'breakthrough' },
+  // 断训鼓励
+  { text:'「洞府蒙尘，然修道之路漫漫，何妨重新启程？」', type:'return' },
+  { text:'「道友休整数日，灵力已沉淀完毕，今日正是出关良机」', type:'return' },
+];
+
+const NPC_QI_MULTIPLIERS = [0.3, 0.5, 0.7, 0.9, 1.1, 0.4, 0.6, 0.8, 1.0, 1.2];
+
+const BT_NARRATIVES = {
+  '凡人之躯':['你的经脉在微弱震颤……','每一滴汗水都是灵力的种子','凡人之躯，亦有不凡之心'],
+  '淬体境':['筋骨齐鸣，气血翻涌！','你的肉身正在经历第一次蜕变','淬体之境——脱胎换骨的开始！'],
+  '开元境':['灵力如溪流，开始在你经脉中流转','五感渐开，内外天地有了微妙的联系','开元之始，大道之门为你敞开一线'],
+  '筑基境':['灵力汇聚丹田，根基初成','你的道基正在铸就，每一步都踏实无比','筑基之境——修道之路上第一座里程碑！'],
+  '金丹境':['丹田之中，金光凝聚！','一颗金丹吞入腹，始知我命不由天！','金丹大成，超凡入圣的第一步！'],
+  '元婴境':['金丹破碎，元婴初生！','一个缩小版的你，在丹田中睁开了双眼','元婴之境，神识外放，感应天地！'],
+  '化神境':['化神之变，天人感应！','你的神识如潮水般蔓延，天地法则在眼前展开','化神之境——已非凡俗！'],
+  '合体境':['天地人三才合一！','你的肉身与元婴完美融合，再无分别','合体之境，你已站在众生之巅！'],
+  '渡劫境':['九天之上劫云密布！','天雷滚滚，这是通往至强者的最后考验','渡劫成功——你已是半个仙人！'],
+  '真仙之体':['金光万道，瑞气千条！','你的肉身已超脱凡俗，成就真仙之体！','从此天地之间，任你逍遥！'],
+};
+
+const TALENT_COMMENTS = {
+  '凡骨':{
+    desc:'你的根骨平平无奇，经脉闭塞，肌肉纤维松散……但！历史上震古烁今的大能，十有八九起步皆是凡骨。道途漫漫，贵在坚持。'
+  },
+  '劣灵根':{
+    desc:'虽然灵力微弱，但你已初窥修行门径。你的经脉之中有一丝若有若无的灵气在游走——只要持之以恒，未必不能逆天改命。'
+  },
+  '三灵根':{
+    desc:'三种灵根相伴相生，修行路上虽非绝世天才，但也算中人之姿。勤能补拙，三灵根亦能证道！'
+  },
+  '双灵根':{
+    desc:'双灵根交相辉映，你的天赋已属上乘。根基稳固，丹田如炉——假以时日，必成大器！'
+  },
+  '天灵根':{
+    desc:'天地灵力在你周身自然流转，肌肉纤维紧密如金丝——天生适合修行之人！但切记：天赋高者易骄，骄兵必败。'
+  },
+  '异灵根':{
+    desc:'！！——检测到异种灵根！你的肉身强度远超常人，经脉宽阔如江河。修行路上，你已是万人之上，但天外有天。'
+  }
+};
+
+// ===================================================================
+// STATE
+// ===================================================================
+let appData = null;
+let currentTraining = []; // [{exerciseIdx, sets: [{reps, weight}]}]
+let obState = { experience:null, gender:null };
+let currentQuoteIdx = 0;
+
+// ===================================================================
+// INIT
+// ===================================================================
+function init(){
+  loadData();
+  if(!appData || !appData.user || !appData.user.onboardingComplete){
+    // New user - show onboarding
+    document.getElementById('onboarding-overlay').style.display='flex';
+    document.getElementById('main-app').style.display='none';
+    initOnboarding();
+  } else {
+    document.getElementById('onboarding-overlay').style.display='none';
+    document.getElementById('main-app').style.display='block';
+    checkDayChange();
+    renderRealm();
+    renderTraining();
+    renderQuotes();
+    renderWarnings();
+    updateHeader();
+  }
+}
+
+// ===================================================================
+// DATA PERSISTENCE
+// ===================================================================
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) appData = JSON.parse(raw);
+    else appData = null;
+  }catch(e){ appData = null; }
+}
+
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  }catch(e){}
+}
+
+function getDefaultData(){
+  return {
+    user:{
+      onboardingComplete:false,
+      talent:'凡骨',
+      talentComment:'',
+      experience:'',
+      weight:70,
+      gender:'undisclosed',
+      squat:null, bench:null, deadlift:null, pullup:null
+    },
+    realmIdx:0,
+    realmStage:0,
+    totalQi:0,
+    todayQi:0,
+    consecutiveDays:0,
+    maxConsecutiveDays:0,
+    totalTrainingDays:0,
+    totalRestDays:0,
+    lastActiveDate:null,
+    weeklyQiHistory:[],
+    sessions:[],
+    exercises:PRESET_EXERCISES.map(e=>({
+      name:e.name, alias:e.alias, emoji:e.emoji,
+      muscle:e.muscle, coeff:e.coeff,
+      grade:'黄阶', proficiency:'初窥门径',
+      maxWeight:0, maxReps:0, totalSets:0, prCount:0,
+      totalVolume:0
+    })),
+    tribulations:{ small:[], large:[] },
+    achievements:[],
+    npcLeaderboard:NPC_NAMES.map((name,i)=>({
+      name, qi:0, title:REALMS[0].name+'·初期'
+    })),
+    trainingRoute:null,
+    customExercises:[],
+    muscleHistory:{}, // {date: [muscleGroup,...]}
+    lastMuscleGroups:[],
+  };
+}
+
+// ===================================================================
+// ONBOARDING
+// ===================================================================
+function initOnboarding(){
+  // reset
+  obState = { experience:null, gender:null };
+  showObStep(1);
+}
+
+function showObStep(n){
+  document.querySelectorAll('.onboarding-step').forEach(s=>s.classList.remove('active'));
+  const el = document.querySelector(`.onboarding-step[data-step="${n}"]`);
+  if(el) el.classList.add('active');
+  // Scroll to top
+  document.getElementById('onboarding-overlay').scrollTop = 0;
+}
+
+function goObStep(n){
+  // Validate current step before proceeding
+  if(n === 3){
+    // Leaving step 2 (experience) — must have selection
+    if(!obState.experience){
+      const sel = document.querySelector('.ob-btn.selected');
+      if(sel) obState.experience = sel.dataset.val;
+      else return;
+    }
+  }
+  showObStep(n);
+  // If step 4, check body data
+  if(n === 4) checkObBody();
+}
+
+function selectOb(el, field){
+  document.querySelectorAll(`.ob-btn[data-val]`).forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  obState[field] = el.dataset.val;
+  // Auto-advance: experience selected → go to step 3 (PR data)
+  if(field === 'experience') goObStep(3);
+}
+
+function selectGender(el){
+  document.querySelectorAll('.ob-gender-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  obState.gender = el.dataset.val;
+  checkObBody();
+}
+
+function checkObBody(){
+  const weight = document.getElementById('ob-weight').value;
+  const btn = document.getElementById('ob-body-next');
+  if(weight && weight > 0 && obState.gender){
+    btn.disabled = false;
+  } else {
+    btn.disabled = true;
+  }
+}
+
+// Weight input enables button
+document.addEventListener('DOMContentLoaded', function(){
+  const wInput = document.getElementById('ob-weight');
+  if(wInput){
+    wInput.addEventListener('input', checkObBody);
+  }
+});
+
+function calculateTalent(){
+  const weight = parseFloat(document.getElementById('ob-weight').value) || 70;
+  const squat = parseFloat(document.getElementById('ob-squat').value) || null;
+  const bench = parseFloat(document.getElementById('ob-bench').value) || null;
+  const deadlift = parseFloat(document.getElementById('ob-deadlift').value) || null;
+  const pullup = parseFloat(document.getElementById('ob-pullup').value) || null;
+  const exp = obState.experience;
+  const gender = obState.gender;
+
+  const hasPR = squat || bench || deadlift || pullup;
+  let talent = '凡骨';
+  let realmIdx = 0;
+  let stage = 0;
+
+  // Determine max PR / weight ratio
+  const maxPR = Math.max(squat||0, bench||0, deadlift||0);
+  const ratio = weight > 0 ? maxPR / weight : 0;
+
+  if(exp === '3+years' && ratio >= 1.5){
+    talent = '异灵根';
+    realmIdx = 3; // 筑基境
+    stage = 0;
+  } else if(exp === '3+years' || ratio >= 1.5){
+    talent = '天灵根';
+    realmIdx = 2; // 开元境
+    stage = 0;
+  } else if(exp === '1-3years'){
+    talent = '双灵根';
+    realmIdx = 1; // 淬体境
+    stage = 3; // 圆满
+  } else if(exp === '3-12months'){
+    talent = '三灵根';
+    realmIdx = 1; // 淬体境
+    stage = 0;
+  } else if(hasPR){
+    talent = '劣灵根';
+    realmIdx = 0; // 凡人之躯
+    stage = 2; // 后期
+  } else {
+    talent = '凡骨';
+    realmIdx = 0;
+    stage = 0;
+  }
+
+  // Store
+  appData = getDefaultData();
+  appData.user.onboardingComplete = false;
+  appData.user.talent = talent;
+  appData.user.talentComment = TALENT_COMMENTS[talent]?.desc || '';
+  appData.user.experience = exp;
+  appData.user.weight = weight;
+  appData.user.gender = gender;
+  appData.user.squat = squat;
+  appData.user.bench = bench;
+  appData.user.deadlift = deadlift;
+  appData.user.pullup = pullup;
+  // Set initial realm
+  appData.realmIdx = realmIdx;
+  appData.realmStage = stage;
+
+  // Set NPC qi
+  const totalQi = getRealmQi(realmIdx, stage);
+  appData.totalQi = totalQi;
+  appData.npcLeaderboard.forEach((npc,i)=>{
+    const mult = NPC_QI_MULTIPLIERS[i % NPC_QI_MULTIPLIERS.length];
+    npc.qi = Math.round(totalQi * mult);
+    const r = getRealmFromQi(npc.qi);
+    npc.title = REALMS[r.idx].name + '·' + STAGES[r.stage];
+  });
+
+  saveData();
+
+  // Show result
+  document.getElementById('ob-talent-name').textContent = talent;
+  document.getElementById('ob-initial-realm').textContent = REALMS[realmIdx].name + '·' + STAGES[stage];
+  document.getElementById('ob-talent-desc').textContent = TALENT_COMMENTS[talent]?.desc || '';
+  showObStep(5);
+}
+
+function completeOnboarding(){
+  appData.user.onboardingComplete = true;
+  appData.lastActiveDate = getTodayStr();
+  saveData();
+
+  document.getElementById('onboarding-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  renderRealm();
+  renderTraining();
+  renderQuotes();
+  renderWarnings();
+  updateHeader();
+}
+
+// ===================================================================
+// REALM CALCULATIONS
+// ===================================================================
+function getRealmQi(realmIdx, stage){
+  let qi = 0;
+  for(let i=0;i<REALMS.length;i++){
+    const next = i+1 < REALMS.length ? REALMS[i+1].threshold : REALMS[i].threshold + 100000;
+    const range = next - REALMS[i].threshold;
+    const stageQi = range / 4;
+    if(i < realmIdx){
+      qi += range;
+    } else if(i === realmIdx){
+      qi += stageQi * stage;
+      break;
+    } else break;
+  }
+  return qi;
+}
+
+function getRealmFromQi(qi){
+  for(let i=REALMS.length-1;i>=0;i--){
+    if(qi >= REALMS[i].threshold){
+      const next = i+1 < REALMS.length ? REALMS[i+1].threshold : REALMS[i].threshold + 100000;
+      const range = next - REALMS[i].threshold;
+      const stageQi = range / 4;
+      const stage = i+1 < REALMS.length
+        ? Math.min(3, Math.floor((qi - REALMS[i].threshold) / stageQi))
+        : 3;
+      return { idx:i, stage:Math.max(0,stage) };
+    }
+  }
+  return { idx:0, stage:0 };
+}
+
+function getRealmProgress(qi, realmIdx){
+  const threshold = REALMS[realmIdx].threshold;
+  const next = realmIdx+1 < REALMS.length
+    ? REALMS[realmIdx+1].threshold
+    : threshold + 100000;
+  const total = next - threshold;
+  const current = qi - threshold;
+  return Math.min(100, Math.max(0, (current / total) * 100));
+}
+
+function getCurrentRealmInfo(){
+  const r = getRealmFromQi(appData.totalQi);
+  return {
+    name: REALMS[r.idx].name + '·' + STAGES[r.stage],
+    realmIdx: r.idx,
+    stage: r.stage,
+    progress: getRealmProgress(appData.totalQi, r.idx),
+    qi: appData.totalQi,
+    nextQi: r.idx+1 < REALMS.length ? REALMS[r.idx+1].threshold : '∞',
+  };
+}
+
+// ===================================================================
+// DATE HELPERS
+// ===================================================================
+function getTodayStr(){ return new Date().toISOString().slice(0,10); }
+function getDateStr(d){ return d.toISOString().slice(0,10); }
+
+function isToday(dateStr){ return dateStr === getTodayStr(); }
+
+function daysBetween(d1, d2){
+  const a = new Date(d1), b = new Date(d2);
+  return Math.floor((b.getTime() - a.getTime()) / 86400000);
+}
+
+function getWeekStart(dateStr, weekOffset){
+  const d = new Date(dateStr);
+  if(weekOffset) d.setDate(d.getDate() - weekOffset * 7);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day-1));
+  return getDateStr(d);
+}
+
+// ===================================================================
+// CHECK DAY CHANGE
+// ===================================================================
+function checkDayChange(){
+  const today = getTodayStr();
+  if(!appData.lastActiveDate){
+    appData.lastActiveDate = today;
+    saveData();
+    return;
+  }
+
+  if(appData.lastActiveDate === today) return;
+
+  const diff = daysBetween(appData.lastActiveDate, today);
+
+  if(diff === 1){
+    // Was yesterday - check if they trained yesterday
+    const yesterday = appData.lastActiveDate;
+    const hadSession = appData.sessions.some(s => s.date === yesterday);
+    if(!hadSession){
+      // Rest day detected
+      // consecutive days reset only if not training for 2+ days
+    }
+  }
+
+  if(diff >= 2){
+    // Missed days - reset consecutive, gentle message
+    appData.consecutiveDays = 0;
+  }
+
+  // Reset todayQi
+  appData.todayQi = 0;
+  appData.lastActiveDate = today;
+  saveData();
+}
+
+// ===================================================================
+// RENDER FUNCTIONS
+// ===================================================================
+function updateHeader(){
+  const info = getCurrentRealmInfo();
+  document.getElementById('h-realm-name').textContent = info.name;
+  document.getElementById('h-qi-total').textContent = info.qi + ' 灵力';
+  document.getElementById('realm-progress').style.width = info.progress + '%';
+  document.getElementById('h-stage-label').textContent = STAGES[info.stage];
+  document.getElementById('h-qi-next').textContent =
+    info.nextQi === '∞' ? '已达至臻' : '下一境: ' + info.nextQi + ' 灵力';
+}
+
+function renderRealm(){
+  const info = getCurrentRealmInfo();
+  document.getElementById('realm-title').textContent = info.name;
+  document.getElementById('today-qi-display').textContent = appData.todayQi || 0;
+  document.getElementById('consecutive-display').textContent = appData.consecutiveDays || 0;
+
+  // Start training button
+  const btn = document.getElementById('start-training-btn');
+  if(appData.consecutiveDays >= 7){
+    btn.textContent = '闭关巩固（建议）';
+    btn.className = 'start-training-btn rest-suggest';
+    btn.disabled = false; // Still can train but with penalty
+  } else if(appData.consecutiveDays >= 5){
+    btn.textContent = '开始修炼';
+    btn.className = 'start-training-btn';
+    btn.disabled = false;
+  } else {
+    btn.textContent = '开始修炼';
+    btn.className = 'start-training-btn';
+    btn.disabled = false;
+  }
+
+  // Rest day suggestion
+  const restArea = document.getElementById('rest-suggestion-area');
+  restArea.innerHTML = '';
+
+  // Show rest card if today hasn't trained yet and no session today
+  const today = getTodayStr();
+  const hasSessionToday = appData.sessions.some(s => s.date === today);
+
+  if(!hasSessionToday && appData.consecutiveDays > 0){
+    // Check if yesterday was a training day
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate()-1);
+    const yStr = getDateStr(yesterday);
+    const hadYesterdaySession = appData.sessions.some(s => s.date === yStr);
+
+    if(hadYesterdaySession && appData.consecutiveDays < 5){
+      // Normal day - show nothing special
+    }
+  }
+}
+
+function renderQuotes(){
+  const container = document.getElementById('quote-container');
+  container.innerHTML = '';
+  const q = getRandomQuote();
+  const qCard = document.createElement('div');
+  qCard.className = 'quote-card';
+  qCard.innerHTML = `
+    <div class="quote-text">${q.text}</div>
+    <div class="quote-source">— 修仙古训</div>
+  `;
+  container.appendChild(qCard);
+}
+
+function getRandomQuote(){
+  return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+}
+
+// ===================================================================
+// WARNINGS
+// ===================================================================
+function renderWarnings(){
+  const area = document.getElementById('warning-area');
+  area.innerHTML = '';
+
+  // Consecutive days warnings
+  if(appData.consecutiveDays >= 7){
+    area.innerHTML += `
+      <div class="warning-bar warm">
+        🧘 连续闭关 ${appData.consecutiveDays} 日，经脉胀痛，灵力激荡！
+        系统建议道友今日以巩固根基为主，新修炼灵力收益降低 50%。
+      </div>
+    `;
+  } else if(appData.consecutiveDays >= 5){
+    area.innerHTML += `
+      <div class="warning-bar warm">
+        🫠 灵力激荡，经脉微胀——道友是否需要巩固一日？
+        连续修炼已 ${appData.consecutiveDays} 天，休息亦是修行。
+      </div>
+    `;
+  }
+
+  // Weekly volume check
+  const weeklyWarn = checkWeeklyVolume();
+  if(weeklyWarn){
+    area.innerHTML += `
+      <div class="warning-bar warm">
+        ⚠️ ${weeklyWarn}
+      </div>
+    `;
+  }
+}
+
+function checkWeeklyVolume(){
+  // Calculate current week volume vs last week
+  const today = new Date();
+  const thisWeekStart = getWeekStart(getTodayStr());
+  const lastWeekDate = new Date(today);
+  lastWeekDate.setDate(lastWeekDate.getDate()-7);
+  const lastWeekStart = getWeekStart(getDateStr(lastWeekDate));
+
+  let thisWeekQi = 0;
+  let lastWeekQi = 0;
+
+  appData.sessions.forEach(s=>{
+    const week = getWeekStart(s.date);
+    if(week === thisWeekStart) thisWeekQi += s.totalQi || 0;
+    else if(week === lastWeekStart) lastWeekQi += s.totalQi || 0;
+  });
+
+  if(lastWeekQi > 0 && thisWeekQi > lastWeekQi * 1.15){
+    return `本周修炼总量较上周增长超过 15%（${Math.round((thisWeekQi/lastWeekQi-1)*100)}%），修行当循序渐进，不宜冒进。`;
+  }
+  return null;
+}
+
+// ===================================================================
+// NAVIGATION
+// ===================================================================
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-page="${name}"]`).classList.add('active');
+
+  // Re-render appropriate page
+  if(name === 'realm'){
+    renderRealm();
+    renderQuotes();
+    renderWarnings();
+    updateHeader();
+  } else if(name === 'training'){
+    renderTraining();
+  } else if(name === 'skills'){
+    renderSkills();
+  } else if(name === 'tribulation'){
+    renderTribulation();
+  } else if(name === 'atlas'){
+    renderAtlas();
+  }
+}
+
+function goToTraining(){
+  switchPage('training');
+}
+
+// ===================================================================
+// TRAINING
+// ===================================================================
+function renderTraining(){
+  const today = getTodayStr();
+  const hasSessionToday = appData.sessions.some(s => s.date === today);
+
+  // Populate exercise select
+  const sel = document.getElementById('exercise-select');
+  sel.innerHTML = '<option value="">选择功法…</option>';
+  appData.exercises.forEach((e,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = e.emoji + ' ' + e.alias + ' (' + e.muscle + ')';
+    sel.appendChild(opt);
+  });
+
+  // Render current training list
+  renderTrainingList();
+
+  // Check muscle warning
+  checkMuscleWarning();
+
+  // Update training today Qi
+  updateTrainingQiDisplay();
+}
+
+function renderTrainingList(){
+  const container = document.getElementById('training-exercise-list');
+  container.innerHTML = '';
+  if(currentTraining.length === 0){
+    container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text2)">点击上方功法添加，开始今日修炼</div>';
+    document.getElementById('end-training-btn').disabled = true;
+    return;
+  }
+
+  document.getElementById('end-training-btn').disabled = false;
+
+  currentTraining.forEach((item, idx)=>{
+    const ex = appData.exercises[item.exerciseIdx];
+    if(!ex) return;
+    const card = document.createElement('div');
+    card.className = 'exercise-card';
+    let setsHtml = '';
+    item.sets.forEach((set, si)=>{
+      setsHtml += `
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--text2);min-width:36px">第${si+1}组</span>
+          <input type="number" value="${set.reps}" min="1" data-e="${idx}" data-s="${si}" data-f="reps" onchange="updateSet(this)" placeholder="次">
+          <label style="font-size:12px;color:var(--text2)">次</label>
+          <input type="number" value="${set.weight}" min="0" step="0.5" data-e="${idx}" data-s="${si}" data-f="weight" onchange="updateSet(this)" placeholder="kg">
+          <label style="font-size:12px;color:var(--text2)">kg</label>
+          <button class="btn-remove" onclick="removeSet(${idx},${si})" style="padding:2px 8px;font-size:12px;border:none;border-radius:4px;background:rgba(139,0,0,.2);color:#ff6b6b;cursor:pointer">✕</button>
+        </div>
+      `;
+    });
+
+    card.innerHTML = `
+      <div class="ec-header">
+        <div class="ec-name"><span class="emoji">${ex.emoji}</span>${ex.alias}</div>
+        <span class="ec-muscle">${ex.muscle}</span>
+        <button class="btn-remove-exercise" onclick="removeExerciseFromTraining(${idx})">✕</button>
+      </div>
+      <div class="ec-sets">${setsHtml}</div>
+      <div class="ec-actions">
+        <button class="btn-add-set" onclick="addSet(${idx})">＋ 添加组</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">组灵力：<span id="set-qi-${idx}">${calcSetQi(item)}</span></div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function addExerciseToTraining(){
+  const sel = document.getElementById('exercise-select');
+  const val = parseInt(sel.value);
+  if(isNaN(val)) return;
+
+  // Check if already added
+  if(currentTraining.some(t=>t.exerciseIdx === val)){
+    alert('此功法已在今日修炼列表中');
+    return;
+  }
+
+  // Muscle group check for consecutive days
+  const ex = appData.exercises[val];
+  if(ex){
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate()-1);
+    const yStr = getDateStr(yesterday);
+    const yesterdayMuscles = appData.muscleHistory?.[yStr] || [];
+    if(yesterdayMuscles.includes(ex.muscle)){
+      const warnArea = document.getElementById('muscle-warning-area');
+      warnArea.innerHTML = `
+        <div class="warning-bar warm muscle-warn">
+          🫠 此功法昨日已修习，「${ex.muscle}」肌群经脉尚需温养，建议今日改修其他功法。
+        </div>
+      `;
+    }
+  }
+
+  currentTraining.push({ exerciseIdx:val, sets:[{reps:10, weight:20}] });
+  renderTraining();
+  updateTrainingQiDisplay();
+}
+
+function removeExerciseFromTraining(idx){
+  currentTraining.splice(idx, 1);
+  renderTraining();
+  updateTrainingQiDisplay();
+}
+
+function addSet(exIdx){
+  currentTraining[exIdx].sets.push({reps:10, weight:20});
+  renderTraining();
+}
+
+function removeSet(exIdx, setIdx){
+  currentTraining[exIdx].sets.splice(setIdx, 1);
+  if(currentTraining[exIdx].sets.length === 0){
+    currentTraining.splice(exIdx, 1);
+  }
+  renderTraining();
+  updateTrainingQiDisplay();
+}
+
+function updateSet(el){
+  const eIdx = parseInt(el.dataset.e);
+  const sIdx = parseInt(el.dataset.s);
+  const field = el.dataset.f;
+  const val = parseFloat(el.value) || 0;
+  if(currentTraining[eIdx] && currentTraining[eIdx].sets[sIdx]){
+    currentTraining[eIdx].sets[sIdx][field] = val;
+    // Update qi display for this exercise
+    const qiEl = document.getElementById('set-qi-' + eIdx);
+    if(qiEl) qiEl.textContent = calcSetQi(currentTraining[eIdx]);
+    updateTrainingQiDisplay();
+  }
+}
+
+function calcSetQi(exItem){
+  const ex = appData.exercises[exItem.exerciseIdx];
+  if(!ex) return 0;
+  let total = 0;
+  exItem.sets.forEach(set=>{
+    const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05;
+    total += setQi;
+  });
+  return Math.round(total);
+}
+
+function updateTrainingQiDisplay(){
+  let total = 0;
+  currentTraining.forEach(item=>{ total += parseInt(calcSetQi(item)) || 0; });
+  document.getElementById('training-qi-display').textContent = total;
+}
+
+function checkMuscleWarning(){
+  const warnArea = document.getElementById('muscle-warning-area');
+  // Check if warning was already shown by addExerciseToTraining
+}
+
+// ===================================================================
+// QI FLOAT ANIMATION
+// ===================================================================
+function showQiFloat(amount, x, y){
+  const el = document.createElement('div');
+  el.className = 'qi-float';
+  el.textContent = '+' + amount + ' 灵力';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+// ===================================================================
+// END TRAINING
+// ===================================================================
+function endTraining(){
+  if(currentTraining.length === 0) return;
+
+  const today = getTodayStr();
+  let totalQi = 0;
+  let hasPR = false;
+  let prText = '';
+  let newMuscles = [];
+
+  // Calculate total Qi
+  currentTraining.forEach(item=>{
+    const ex = appData.exercises[item.exerciseIdx];
+    if(!ex) return;
+    item.sets.forEach(set=>{
+      const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05;
+      totalQi += setQi;
+
+      // Check PR
+      if(set.weight > ex.maxWeight){
+        ex.maxWeight = set.weight;
+        hasPR = true;
+        prText += ex.alias + ' 重量突破 ' + set.weight + 'kg！';
+      }
+      if(set.reps > ex.maxReps){
+        ex.maxReps = set.reps;
+        if(!hasPR) prText = '';
+        prText += (hasPR ? '' : '') + ex.alias + ' 次数突破 ' + set.reps + ' 次！';
+        hasPR = true;
+      }
+      ex.totalSets++;
+      ex.totalVolume += set.weight * set.reps;
+    });
+    if(!newMuscles.includes(ex.muscle)) newMuscles.push(ex.muscle);
+  });
+
+  totalQi = Math.round(totalQi);
+
+  // Consecutive bonus
+  const conBonus = appData.consecutiveDays >= 5 ? 1.2 : appData.consecutiveDays >= 3 ? 1.1 : 1.0;
+  let rawQi = totalQi;
+  totalQi = Math.round(totalQi * conBonus);
+
+  // Penalty for 7+ consecutive days
+  const hasPenalty = appData.consecutiveDays >= 7;
+  if(hasPenalty){
+    totalQi = Math.round(totalQi * 0.5);
+  }
+
+  // PR bonus
+  if(hasPR){
+    totalQi += 100;
+  }
+
+  // Qi generation
+  const todayQi = appData.todayQi || 0;
+  appData.todayQi = todayQi + totalQi;
+  appData.totalQi += totalQi;
+  appData.consecutiveDays++;
+  if(appData.consecutiveDays > appData.maxConsecutiveDays){
+    appData.maxConsecutiveDays = appData.consecutiveDays;
+  }
+
+  // Check realm breakthrough
+  const oldRealm = getRealmFromQi(appData.totalQi - totalQi);
+  const newRealm = getRealmFromQi(appData.totalQi);
+  const breakthrough = (oldRealm.idx < newRealm.idx) || (oldRealm.stage < newRealm.stage);
+
+  // Save session
+  const session = {
+    date: today,
+    exercises: currentTraining.map(item=>({
+      exerciseIdx: item.exerciseIdx,
+      sets: item.sets.map(s=>({reps:s.reps, weight:s.weight}))
+    })),
+    totalQi: totalQi,
+    rawQi: rawQi,
+    conBonus: conBonus,
+    penalty: hasPenalty,
+    hasPR: hasPR,
+  };
+  appData.sessions.push(session);
+
+  // Update muscle history
+  if(!appData.muscleHistory) appData.muscleHistory = {};
+  appData.muscleHistory[today] = newMuscles;
+  appData.lastMuscleGroups = newMuscles;
+
+  // Update exercise grades
+  appData.exercises.forEach(e=>{
+    updateExerciseGrade(e);
+  });
+
+  // Weekly history
+  updateWeeklyHistory(today, totalQi);
+
+  // Update NPC
+  updateNPC();
+
+  appData.totalTrainingDays++;
+  appData.lastActiveDate = today;
+  saveData();
+
+  // Show summary
+  showSummary({
+    totalQi, rawQi, conBonus, hasPenalty, hasPR, prText, breakthrough,
+    oldRealm, newRealm, todayQi: appData.todayQi
+  });
+
+  // Check weekly volume
+  const weeklyCheck = checkWeeklyVolume();
+
+  // Check achievements
+  checkAchievements();
+
+  // Clear current training
+  currentTraining = [];
+  updateHeader();
+  renderRealm();
+  renderQuotes();
+  renderWarnings();
+}
+
+function updateExerciseGrade(ex){
+  // Grade based on total volume
+  const vol = ex.totalVolume;
+  const grades = ['黄阶','玄阶','地阶','天阶','圣阶','神阶'];
+  const thresholds = [0, 1000, 5000, 20000, 50000, 100000];
+  for(let i=thresholds.length-1;i>=0;i--){
+    if(vol >= thresholds[i]){ ex.grade = grades[i]; break; }
+  }
+
+  // Proficiency based on total sets
+  const sets = ex.totalSets;
+  const profs = ['初窥门径','小成','大成','圆满','化境'];
+  const pThresholds = [0, 30, 100, 300, 1000];
+  for(let i=pThresholds.length-1;i>=0;i--){
+    if(sets >= pThresholds[i]){ ex.proficiency = profs[i]; break; }
+  }
+}
+
+function updateWeeklyHistory(today, qi){
+  const weekStart = getWeekStart(today);
+  let found = false;
+  if(!appData.weeklyQiHistory) appData.weeklyQiHistory = [];
+  appData.weeklyQiHistory.forEach(w=>{
+    if(w.week === weekStart){
+      w.total += qi;
+      found = true;
+    }
+  });
+  if(!found){
+    appData.weeklyQiHistory.push({week:weekStart, total:qi});
+  }
+}
+
+function updateNPC(){
+  appData.npcLeaderboard.forEach((npc,i)=>{
+    const mult = NPC_QI_MULTIPLIERS[i % NPC_QI_MULTIPLIERS.length];
+    // NPC grows based on user's progress
+    const targetQi = Math.round(appData.totalQi * mult);
+    // Gradual approach
+    npc.qi = Math.round(npc.qi + (targetQi - npc.qi) * 0.1);
+    const r = getRealmFromQi(npc.qi);
+    npc.title = REALMS[r.idx].name + '·' + STAGES[r.stage];
+  });
+}
+
+// ===================================================================
+// SUMMARY MODAL
+// ===================================================================
+function showSummary(data){
+  const modal = document.getElementById('summary-modal');
+  const content = document.getElementById('summary-content');
+
+  let html = `
+    <div class="summary-stats">
+      <div class="summary-stat">
+        <div class="ss-value">${data.totalQi}</div>
+        <div class="ss-label">本次灵力</div>
+      </div>
+    `;
+  if(data.hasPR){
+    html += `<div class="summary-stat"><div class="ss-value" style="color:var(--gold-bright)">+100</div><div class="ss-label">突破奖励</div></div>`;
+  }
+  html += `</div>`;
+
+  if(data.conBonus > 1){
+    html += `<div style="text-align:center;font-size:13px;color:var(--text2);margin-bottom:8px">连击加成 ×${data.conBonus}（闭关第 ${appData.consecutiveDays} 天）</div>`;
+  }
+
+  if(data.hasPenalty){
+    html += `<div class="summary-warning">🧘 灵力因连日修炼而涣散，收益降低 50%。系统建议道友明日巩固休息。</div>`;
+  }
+
+  if(data.hasPR){
+    html += `<div class="summary-pr"><div class="pr-text">🌟 ${data.prText}</div><div class="pr-bonus">突破自身极限，灵力 +100！</div></div>`;
+  }
+
+  // Narrative
+  const narratives = [
+    '灵力在经脉中缓缓流淌，今日修炼圆满结束。',
+    '肌肉微涨，气息绵长——今日修炼效果上佳。',
+    '汗水已干，丹田温热，道友又朝大道迈进了一步。',
+    '一呼一吸之间，灵力在体内沉淀。日日如此，何愁大道不成？',
+  ];
+  html += `<div style="text-align:center;font-size:13px;color:var(--text2);font-style:italic;padding:12px 0;border-top:1px solid rgba(201,169,110,.1)">${narratives[Math.floor(Math.random()*narratives.length)]}</div>`;
+
+  content.innerHTML = html;
+  modal.classList.add('active');
+}
+
+function closeSummary(){
+  document.getElementById('summary-modal').classList.remove('active');
+  renderTraining();
+  updateHeader();
+  renderRealm();
+  renderQuotes();
+  renderWarnings();
+}
+
+// ===================================================================
+// BREAKTHROUGH
+// ===================================================================
+function showBreakthrough(realmIdx, stage){
+  const modal = document.getElementById('breakthrough-modal');
+  const narrative = document.getElementById('bt-narrative');
+  const realmName = REALMS[realmIdx].name;
+  const stageName = STAGES[stage];
+
+  const lines = BT_NARRATIVES[realmName] || ['你的修为突破了一个新的境界！'];
+  let html = `<p class="boom">⚡ ${realmName}·${stageName} ⚡</p>`;
+  lines.forEach(l=>{ html += `<p>${l}</p>`; });
+  html += `<p style="margin-top:12px;color:var(--gold);font-weight:700">恭喜道友突破至 ${realmName}·${stageName}！</p>`;
+  narrative.innerHTML = html;
+  modal.classList.add('active');
+
+  // Try vibration
+  if(navigator.vibrate) navigator.vibrate(200);
+}
+
+function closeBreakthrough(){
+  document.getElementById('breakthrough-modal').classList.remove('active');
+}
+
+// ===================================================================
+// PR MODAL
+// ===================================================================
+function showPR(text){
+  document.getElementById('pr-text').textContent = text;
+  document.getElementById('pr-modal').classList.add('active');
+}
+
+function closePR(){
+  document.getElementById('pr-modal').classList.remove('active');
+}
+
+// ===================================================================
+// SKILLS & ROUTES
+// ===================================================================
+function renderSkills(){
+  const container = document.getElementById('skills-exercise-list');
+  if(!container) return;
+  const exercises = appData.exercises.filter(function(e){ return !e._deleted; });
+  var html = '';
+  exercises.forEach(function(ex,i){
+    const gradeColors = { '黄阶':'','玄阶':'#6fa8dc','地阶':'#93c47d','天阶':'#ffd700','圣阶':'#c27ba0','神阶':'#ff6b6b' };
+    const gColor = gradeColors[ex.grade] || '';
+    html += '<div class="skill-card">';
+    html += '<div class="sc-header">';
+    html += '<div class="sc-name">'+ex.emoji+' '+ex.alias+' <span class="alias">('+ex.name+')</span></div>';
+    html += '<div style="font-size:20px;" style="color:'+gColor+'">'+ex.grade+'</div>';
+    html += '</div>';
+    html += '<div class="sc-tags">';
+    html += '<span class="skill-tag muscle">'+ex.muscle+'</span>';
+    html += '<span class="skill-tag prof">'+ex.proficiency+'</span>';
+    html += '</div>';
+    html += '<div class="sc-stats">';
+    html += '<span>📊 总修炼 '+ex.totalSets+' 次</span>';
+    html += '<span>🏋️ 巅峰 '+ex.maxWeight+'kg</span>';
+    html += '<span>🔥 容量 '+ex.totalVolume+'</span>';
+    html += '</div>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+
+  // Also render custom exercise form
+  var customArea = document.getElementById('custom-exercise-area');
+  if(customArea){
+    customArea.innerHTML = '<div class="custom-ex-form" id="custom-ex-form">'
+      + '<h3>✏️ 自创功法</h3>'
+      + '<div class="cef-row"><input id="ce-name" placeholder="动作名称（如：农夫行走）"><input id="ce-emoji" placeholder="Emoji（如：🏃）" maxlength="2" style="max-width:80px"></div>'
+      + '<div class="cef-row"><select id="ce-muscle"><option value="腿">🦵 腿</option><option value="胸">🏋️ 胸</option><option value="背">💪 背</option><option value="核心">🔄 核心</option><option value="臂">💪 臂</option><option value="肩">⬆️ 肩</option><option value="臀">🔄 臀</option></select><input id="ce-coeff" placeholder="难度系数 (0.3-1.5)" value="0.6" style="max-width:100px"></div>'
+      + '<button onclick="createCustomExercise()">📜 创立法诀</button>'
+      + '</div>';
+  }
+}
+
+function createCustomExercise(){
+  const name = document.getElementById('ce-name').value.trim();
+  const emoji = document.getElementById('ce-emoji').value.trim() || '📜';
+  const muscle = document.getElementById('ce-muscle').value;
+  const coeff = parseFloat(document.getElementById('ce-coeff').value) || 0.6;
+  if(!name){ alert('请输入功法名称'); return; }
+  const ex = {
+    name: name,
+    alias: name,
+    emoji: emoji,
+    muscle: muscle,
+    coeff: Math.max(0.3, Math.min(1.5, coeff)),
+    grade: '黄阶',
+    proficiency: '初窥门径',
+    maxWeight: 0,
+    maxReps: 0,
+    totalSets: 0,
+    prCount: 0,
+    totalVolume: 0
+  };
+  appData.exercises.push(ex);
+  saveData();
+  renderSkills();
+  renderTraining();
+}
+
+function toggleRouteSelect(){
+  const area = document.getElementById('route-selection-area');
+  if(!area) return;
+  if(area.style.display !== 'block'){
+    area.style.display = 'block';
+    renderRoutes();
+  } else {
+    area.style.display = 'none';
+  }
+}
+
+const ROUTES = [
+  { id:'none', name:'无路线', desc:'自由修炼，不受约束', freq:'自由', info:'随心所欲，听凭心意' },
+  { id:'beginner', name:'凡骨淬体法', desc:'纯新手全身训练', freq:'每周 3 天', info:'每次练全部基础动作，适合刚踏入修行之门的道友' },
+  { id:'ppl', name:'三脉同修法', desc:'推/拉/腿三分化', freq:'每周 4-5 天', info:'经典推拉腿分化，适合初中级道友稳扎稳打' },
+  { id:'upperlower', name:'五行轮转法', desc:'上下肢分化', freq:'每周 4 天', info:'上下肢交替训练，适合中级道友全面提升' },
+  { id:'custom', name:'自创功法', desc:'完全自定义训练日', freq:'自由', info:'随心所欲，编写你自己的修炼法门' },
+];
+
+function renderRoutes(){
+  const area = document.getElementById('route-selection-area');
+  if(!area) return;
+  var html = '<div style="background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15)">';
+  html += '<h3 style="font-size:16px;color:var(--gold2);margin-bottom:12px">🗺️ 选择修炼路线</h3>';
+  html += '<p style="font-size:13px;color:var(--text2);margin-bottom:12px">选择后洞府页面会显示「今日建议修炼」，你可随时切换或忽略。</p>';
+  ROUTES.forEach(function(r){
+    const sel = appData.trainingRoute === r.id ? ' selected' : '';
+    html += '<div class="route-card'+sel+'" onclick="selectRoute(\''+r.id+'\')">';
+    html += '<div class="rc-name">'+r.name+'</div>';
+    html += '<div class="rc-desc">'+r.desc+' · '+r.freq+'</div>';
+    html += '<div class="rc-info">'+r.info+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function selectRoute(id){
+  appData.trainingRoute = id;
+  saveData();
+  renderRoutes();
+  renderRealm();
+}
+
+// ===================================================================
+// TRIBULATION (天劫)
+// ===================================================================
+function renderTribulation(){
+  const container = document.getElementById('tribulation-content');
+  if(!container) return;
+  
+  const today = getTodayStr();
+  const hasTrainedToday = appData.lastActiveDate === today && appData.sessions.some(function(s){ return s.date === today; });
+  const consecutive = appData.consecutiveDays || 0;
+  
+  var html = '';
+  
+  // Check if small tribulation done today
+  const smallDone = appData.tribulations.small.some(function(t){ return t.date === today; });
+  // Check if large tribulation done this week
+  const weekStart = getWeekStart(today);
+  const largeDone = appData.tribulations.large.some(function(t){ return t.week === weekStart; });
+  
+  // If consecutive >= 5, force recovery tribulation
+  const isRecovery = consecutive >= 5;
+  
+  // Small tribulation
+  html += '<div class="trib-card">';
+  html += '<div class="tc-type">✨ 小天劫 · 每日可选</div>';
+  if(smallDone){
+    html += '<div class="trib-completed"><div class="tc-icon">✅</div><div>今日天劫已渡，劫云散去，身心舒畅。</div></div>';
+  } else if(isRecovery){
+    // Generate recovery tribulation
+    const recoveryList = [
+      {title:'静修天劫·舒展经脉', desc:'完成 15 分钟全身拉伸', reward:30, icon:'🧘'},
+      {title:'静修天劫·采气归元', desc:'散步 30 分钟，呼吸吐纳', reward:40, icon:'🚶'},
+      {title:'静修天劫·入定冥想', desc:'泡沫轴放松 10 分钟', reward:25, icon:'🛌'},
+    ];
+    const rec = recoveryList[Math.floor(Math.random() * recoveryList.length)];
+    html += '<div class="tc-title">'+rec.icon+' '+rec.title+'</div>';
+    html += '<div class="tc-desc">⚡ 九天之上劫云翻涌！然天道仁慈——道友连日修炼，经脉需温养，降下静修天劫。<br><br>'+rec.desc+'</div>';
+    html += '<div class="tc-reward">天道馈赠：+'+rec.reward+' 巩固灵力</div>';
+    html += '<button class="tc-btn recovery" onclick="completeTribulationSmall()">完成静修</button>';
+    // Store current tribulation
+    window._currentRecoveryTrib = rec;
+  } else {
+    // Generate based on recent training data
+    const trib = generateSmallTribulation();
+    html += '<div class="tc-title">'+trib.icon+' '+trib.title+'</div>';
+    html += '<div class="tc-desc">⚡ 九天之上劫云翻涌！然天道仁慈，降下小天劫——<br><br>'+trib.desc+'<br><br>若觉力有不逮，亦可安然度过，无人怪你。</div>';
+    html += '<div class="tc-reward">天道馈赠：+'+trib.reward+' 灵力</div>';
+    html += '<button class="tc-btn" onclick="completeTribulationSmall()">应劫挑战</button>';
+    window._currentTrib = trib;
+  }
+  html += '</div>';
+  
+  // Large tribulation
+  html += '<div class="trib-card">';
+  html += '<div class="tc-type">🔥 大天劫 · 每周可选</div>';
+  if(largeDone){
+    html += '<div class="trib-completed"><div class="tc-icon">✅</div><div>本周大天劫已渡，天道降下丰厚馈赠。</div></div>';
+  } else if(consecutive >= 5 || hasTrainedToday){
+    // Recovery type for large too
+    html += '<div class="tc-title">🛌 静修天劫·固本培元</div>';
+    html += '<div class="tc-desc">本周训练已满，天道降下静修大天劫——今日以恢复为主，巩固根基。</div>';
+    html += '<div class="tc-reward">天道馈赠：+50 巩固灵力</div>';
+    html += '<button class="tc-btn recovery" onclick="completeTribulationLarge()">完成静修</button>';
+  } else {
+    const large = generateLargeTribulation();
+    html += '<div class="tc-title">'+large.icon+' '+large.title+'</div>';
+    html += '<div class="tc-desc">'+large.desc+'</div>';
+    html += '<div class="tc-reward">天道馈赠：+'+large.reward+' 灵力</div>';
+    html += '<button class="tc-btn" onclick="completeTribulationLarge()">应劫挑战</button>';
+    window._currentLargeTrib = large;
+  }
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+function generateSmallTribulation(){
+  // Find available muscle groups (not trained yesterday)
+  const yesterday = getYesterdayStr();
+  const yMuscles = appData.muscleHistory && appData.muscleHistory[yesterday] ? appData.muscleHistory[yesterday] : [];
+  
+  // Available exercises for tribulation
+  const available = appData.exercises.filter(function(e){
+    return !e._deleted && yMuscles.indexOf(e.muscle) === -1;
+  });
+  
+  const ex = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : appData.exercises[0];
+  
+  // Calculate target based on past 14 days
+  const past14 = appData.sessions.filter(function(s){
+    const daysDiff = (new Date(getTodayStr()) - new Date(s.date)) / 86400000;
+    return daysDiff <= 14 && daysDiff >= 0;
+  });
+  
+  var avgVolume = 0;
+  var count = 0;
+  past14.forEach(function(session){
+    session.exercises.forEach(function(item){
+      const e = appData.exercises[item.exerciseIdx];
+      if(e && e.muscle === ex.muscle){
+        item.sets.forEach(function(set){
+          avgVolume += (set.weight || 0) * (set.reps || 0);
+          count++;
+        });
+      }
+    });
+  });
+  
+  if(count > 0) avgVolume = Math.round(avgVolume / count);
+  else avgVolume = Math.round((appData.user.weight || 70) * 10);
+  
+  // Target: 100-115% of average
+  const target = Math.round(avgVolume * (1.0 + Math.random() * 0.15));
+  
+  return {
+    title: ex.emoji+' '+ex.alias+'·天劫',
+    desc: '今日需完成 '+ex.name+' 训练——总量达到 '+target+' 即可渡劫成功。\n（约等于 '+(target > 0 ? Math.round(target / (avgVolume || 1) * 100) : 100)+'% 日常水平，天道从不为难凡人。）',
+    reward: Math.round(target * 0.05 * ex.coeff) + 20,
+    icon: '⚡',
+    target: target,
+    muscle: ex.muscle
+  };
+}
+
+function generateLargeTribulation(){
+  // Average weekly volume over past 4 weeks
+  var totalWeekly = 0;
+  var weekCount = 0;
+  const today = getTodayStr();
+  for(var w=0; w<4; w++){
+    const ws = getWeekStart(today, w);
+    if(appData.weeklyQiHistory){
+      appData.weeklyQiHistory.forEach(function(wh){
+        if(wh.week === ws){
+          totalWeekly += wh.total;
+          weekCount++;
+        }
+      });
+    }
+  }
+  var avgWeekly = weekCount > 0 ? Math.round(totalWeekly / weekCount) : 200;
+  const target = Math.round(avgWeekly * (1.0 + Math.random() * 0.10));
+  
+  return {
+    title: '大天劫·周总量试炼',
+    desc: '本周修炼灵力总量需达到 '+target+'。\n（过去四周平均周总量为 '+avgWeekly+'，天道仅取十之一二为试炼。）\n自由分配至各功法，心力不足亦可放弃，下次再战。',
+    reward: Math.round(target * 0.15) + 50,
+    icon: '🔥',
+    target: target
+  };
+}
+
+function completeTribulationSmall(){
+  const today = getTodayStr();
+  const trib = window._currentTrib || window._currentRecoveryTrib;
+  const reward = trib ? trib.reward : 30;
+  
+  if(!appData.tribulations) appData.tribulations = { small:[], large:[] };
+  appData.tribulations.small.push({
+    date: today,
+    reward: reward,
+    completed: true
+  });
+  
+  appData.totalQi += reward;
+  appData.todayQi = (appData.todayQi || 0) + reward;
+  saveData();
+  
+  renderTribulation();
+  updateHeader();
+  renderRealm();
+  
+  // Show success toast
+  showToast('⚡ 劫云散去，天道降下金光！道友成功渡劫，灵力 +'+reward+'！');
+}
+
+function completeTribulationLarge(){
+  const today = getTodayStr();
+  const weekStart = getWeekStart(today);
+  const trib = window._currentLargeTrib;
+  const reward = trib ? trib.reward : 80;
+  
+  if(!appData.tribulations) appData.tribulations = { small:[], large:[] };
+  appData.tribulations.large.push({
+    week: weekStart,
+    reward: reward,
+    completed: true
+  });
+  
+  appData.totalQi += reward;
+  appData.todayQi = (appData.todayQi || 0) + reward;
+  saveData();
+  
+  renderTribulation();
+  updateHeader();
+  renderRealm();
+  
+  showToast('🔥 大天劫渡尽！天道震动，降下巨额灵力 +'+reward+'！');
+}
+
+function getYesterdayStr(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+
+// Toast system
+function showToast(msg){
+  var existing = document.getElementById('toast-container');
+  if(!existing){
+    const tc = document.createElement('div');
+    tc.id = 'toast-container';
+    tc.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;text-align:center;pointer-events:none';
+    document.body.appendChild(tc);
+    existing = tc;
+  }
+  const el = document.createElement('div');
+  el.style.cssText = 'background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px 24px;color:var(--text);font-size:14px;line-height:1.6;max-width:320px;box-shadow:0 8px 30px rgba(0,0,0,.6);animation:breakthrough .4s ease;margin:8px';
+  el.textContent = msg;
+  existing.appendChild(el);
+  setTimeout(function(){ el.style.opacity = '0'; el.style.transition = 'opacity .5s'; setTimeout(function(){ el.remove(); },500); }, 2500);
+}
+
+// ===================================================================
+// ATLAS (图谱) & LEADERBOARD & ACHIEVEMENTS
+// ===================================================================
+const ACHIEVEMENTS = [
+  { id:'first_pr', name:'凡骨逆袭', icon:'🦴', desc:'首次突破个人纪录' },
+  { id:'qi_500', name:'焚炉重铸', icon:'🔥', desc:'单次修炼灵力超 500' },
+  { id:'consecutive_30', name:'暗夜苦修', icon:'🌙', desc:'连续 30 天不间断修炼' },
+  { id:'rest_50', name:'道心通明', icon:'🧘', desc:'累计休息日达 50 天' },
+  { id:'trib_10', name:'雷劫洗礼', icon:'⚡', desc:'完成 10 次天劫' },
+  { id:'realm_7', name:'此界巅峰', icon:'👑', desc:'达合体境' },
+];
+
+function renderAtlas(){
+  const container = document.getElementById('atlas-content');
+  if(!container) return;
+  
+  var html = '';
+  
+  // Stats overview
+  const realmInfo = getRealmFromQi(appData.totalQi);
+  const totalSessions = appData.sessions.length;
+  const totalRest = appData.totalRestDays || 0;
+  const ratio = totalRest > 0 ? (totalSessions / totalRest).toFixed(1) : totalSessions;
+  
+  html += '<div class="atlas-section">';
+  html += '<h3>📊 修炼总览</h3>';
+  html += '<div class="atlas-stat-row">';
+  html += '<div class="atlas-stat"><div class="as-value">'+appData.totalQi+'</div><div class="as-label">总灵力</div></div>';
+  html += '<div class="atlas-stat"><div class="as-value">'+totalSessions+'</div><div class="as-label">修炼次数</div></div>';
+  html += '<div class="atlas-stat"><div class="as-value">'+totalRest+'</div><div class="as-label">休息日</div></div>';
+  html += '<div class="atlas-stat"><div class="as-value">'+ratio+'</div><div class="as-label">修炼/休息比</div></div>';
+  html += '</div>';
+  if(ratio >= 3 && ratio <= 5){
+    html += '<div style="text-align:center;font-size:12px;color:var(--success)">✅ 修炼休息比在健康范围（3:1 ~ 5:1）</div>';
+  } else if(ratio > 5){
+    html += '<div style="text-align:center;font-size:12px;color:var(--warm)">⚠️ 修炼偏多，建议适当增加休息日</div>';
+  } else if(ratio < 3 && totalSessions > 0){
+    html += '<div style="text-align:center;font-size:12px;color:var(--text2)">修炼强度偏低，道友可多精进</div>';
+  }
+  html += '</div>';
+  
+  // Timeline (realm breakthroughs)
+  html += '<div class="atlas-section">';
+  html += '<h3>🏔️ 境界突破时间线</h3>';
+  html += '<div class="timeline">';
+  // Show initial realm
+  html += '<div class="timeline-item"><div class="ti-date">初始</div><div class="ti-text">'+REALMS[0].name+'·初期（根骨鉴定）</div></div>';
+  // Check sessions for breakthrough-like entries
+  var displayedRealms = {};
+  appData.sessions.forEach(function(s){
+    const r = getRealmFromQi(s.totalQi || 0);
+    const key = r.idx+'-'+r.stage;
+    if(!displayedRealms[key]){
+      displayedRealms[key] = true;
+      if(r.idx > 0 || r.stage > 0){
+        html += '<div class="timeline-item"><div class="ti-date">'+s.date+'</div><div class="ti-text">'+REALMS[r.idx].name+'·'+STAGES[r.stage]+'</div></div>';
+      }
+    }
+  });
+  if(Object.keys(displayedRealms).length <= 1){
+    html += '<div style="text-align:center;font-size:13px;color:var(--text2);padding:12px">修行之路刚刚开始，继续努力突破！</div>';
+  }
+  html += '</div></div>';
+  
+  // Weekly Chart (last 6 weeks)
+  html += '<div class="atlas-section">';
+  html += '<h3>📈 周修炼灵力</h3>';
+  var maxWeekQi = 1;
+  var weekData = [];
+  const today = getTodayStr();
+  for(var w=5; w>=0; w--){
+    const ws = getWeekStart(today, w);
+    var total = 0;
+    if(appData.weeklyQiHistory){
+      appData.weeklyQiHistory.forEach(function(wh){
+        if(wh.week === ws) total += wh.total;
+      });
+    }
+    weekData.push({week:ws, total:total});
+    if(total > maxWeekQi) maxWeekQi = total;
+  }
+  if(maxWeekQi === 0) maxWeekQi = 1;
+  weekData.forEach(function(wd){
+    const pct = Math.max(2, Math.round(wd.total / maxWeekQi * 100));
+    const label = wd.week.slice(5); // MM-DD
+    var dangerMarker = '';
+    // Check if that week had >5 consecutive days (simplified: check consecutive days tracked)
+    html += '<div class="chart-bar-wrap"><div class="chart-label">'+label+'</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+pct+'%"></div></div><div class="chart-bar-value">'+wd.total+'</div></div>';
+  });
+  html += '</div>';
+  
+  // Muscle distribution
+  html += '<div class="atlas-section">';
+  html += '<h3>💪 肌群修炼分布</h3>';
+  var muscleTotals = { '腿':0, '胸':0, '背':0, '核心':0, '臂':0, '肩':0, '臀':0, '背+腿':0 };
+  var totalVolume = 0;
+  appData.sessions.forEach(function(session){
+    session.exercises.forEach(function(item){
+      const e = appData.exercises[item.exerciseIdx];
+      if(e){
+        item.sets.forEach(function(set){
+          const vol = (set.weight || 0) * (set.reps || 0);
+          muscleTotals[e.muscle] = (muscleTotals[e.muscle] || 0) + vol;
+          totalVolume += vol;
+        });
+      }
+    });
+  });
+  // Merge 背+腿 into their components
+  if(muscleTotals['背+腿']){
+    muscleTotals['腿'] = (muscleTotals['腿'] || 0) + Math.round(muscleTotals['背+腿'] * 0.5);
+    muscleTotals['背'] = (muscleTotals['背'] || 0) + Math.round(muscleTotals['背+腿'] * 0.5);
+  }
+  if(totalVolume === 0) totalVolume = 1;
+  var muscleColors = {'腿':'#e74c3c','胸':'#3498db','背':'#2ecc71','核心':'#f39c12','臂':'#9b59b6','肩':'#1abc9c','臀':'#e67e22'};
+  Object.keys(muscleColors).forEach(function(m){
+    const vol = muscleTotals[m] || 0;
+    const pct = Math.round(vol / totalVolume * 100);
+    if(pct > 0){
+      html += '<div class="muscle-bar"><div class="mb-label"><span>'+m+'</span><span>'+pct+'%</span></div><div class="mb-track"><div class="mb-fill" style="width:'+pct+'%;background:'+muscleColors[m]+';"></div></div></div>';
+    }
+  });
+  if(totalVolume <= 1){
+    html += '<div style="text-align:center;font-size:13px;color:var(--text2);padding:12px">暂无训练数据，开始修炼后可见分布</div>';
+  }
+  html += '</div>';
+  
+  // Achievements
+  html += '<div class="atlas-section">';
+  html += '<h3>🏆 称号成就</h3>';
+  html += '<div class="achievement-grid">';
+  ACHIEVEMENTS.forEach(function(ach){
+    var unlocked = appData.achievements && appData.achievements.indexOf(ach.id) !== -1;
+    html += '<div class="achievement-item '+(unlocked?'unlocked':'locked')+'">';
+    html += '<div class="ai-icon">'+ach.icon+'</div>';
+    html += '<div class="ai-name">'+(unlocked?'✅ ':'🔒 ')+ach.name+'</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  
+  // Leaderboard
+  html += '<div class="lb-card">';
+  html += '<h3>🏆 战力天榜</h3>';
+  // Combine NPC + user
+  var allEntries = appData.npcLeaderboard.map(function(npc, i){
+    return { name:npc.name, qi:npc.qi, title:npc.title, isUser:false };
+  });
+  allEntries.push({ name:'我（'+appData.user.talent+'）', qi:appData.totalQi, title:REALMS[realmInfo.idx].name+'·'+STAGES[realmInfo.stage], isUser:true });
+  allEntries.sort(function(a,b){ return b.qi - a.qi; });
+  
+  allEntries.forEach(function(entry, i){
+    var rankClass = '';
+    if(i === 0) rankClass = 'gold';
+    else if(i === 1) rankClass = 'silver';
+    else if(i === 2) rankClass = 'bronze';
+    if(entry.isUser) rankClass = 'self';
+    
+    var rankDisplay = (i+1);
+    var aboveName = '';
+    if(i > 0 && entry.isUser){
+      aboveName = allEntries[i-1].name;
+    }
+    
+    html += '<div class="lb-entry">';
+    html += '<div class="lb-rank '+rankClass+'">'+rankDisplay+'</div>';
+    html += '<div class="lb-name '+(entry.isUser?'self':'')+'">'+entry.name+'</div>';
+    html += '<div class="lb-realm">'+entry.title+'</div>';
+    html += '<div class="lb-qi">'+entry.qi+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  
+  // Data export/import
+  html += '<div class="atlas-section">';
+  html += '<h3>📦 数据管理</h3>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+  html += '<button onclick="exportData()" style="flex:1;padding:12px;border:none;border-radius:8px;background:rgba(201,169,110,.15);color:var(--gold);font-size:14px;cursor:pointer;min-height:44px">📤 导出数据</button>';
+  html += '<button onclick="document.getElementById(\'import-input\').click()" style="flex:1;padding:12px;border:none;border-radius:8px;background:rgba(201,169,110,.15);color:var(--gold);font-size:14px;cursor:pointer;min-height:44px">📥 导入数据</button>';
+  html += '</div>';
+  html += '<input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)">';
+  html += '<div style="font-size:12px;color:var(--text2);text-align:center">数据仅保存在本地，导入将覆盖当前所有修炼数据</div>';
+  html += '</div>';
+  
+  // Weight editor
+  html += '<div class="atlas-section">';
+  html += '<h3>⚖️ 肉身根基数据</h3>';
+  html += '<div style="font-size:14px;color:var(--text)">当前体重：'+appData.user.weight+' kg</div>';
+  html += '<div class="weight-edit"><input type="number" id="weight-input" value="'+appData.user.weight+'" min="20" max="400"><button onclick="updateWeight()">更新</button></div>';
+  html += '<div style="font-size:13px;color:var(--text2);margin-top:8px">性别：'+(appData.user.gender==='male'?'♂ 男':appData.user.gender==='female'?'♀ 女':'不便透露')+'</div>';
+  html += '<div style="font-size:13px;color:var(--text2)">天赋：'+appData.user.talent+'</div>';
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+function updateWeight(){
+  const val = parseFloat(document.getElementById('weight-input').value);
+  if(val && val >= 20 && val <= 400){
+    appData.user.weight = val;
+    saveData();
+    showToast('✅ 体重已更新为 '+val+' kg');
+  } else {
+    alert('请输入有效的体重（20-400 kg）');
+  }
+}
+
+function exportData(){
+  appData._exportDate = new Date().toISOString();
+  const json = JSON.stringify(appData, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fanrenxunlianzhuan_data_'+getTodayStr()+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 数据已导出！');
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.user || !data.exercises){
+        alert('无效的数据文件');
+        return;
+      }
+      if(!confirm('导入将覆盖当前所有数据，确认继续？')) return;
+      appData = data;
+      saveData();
+      // Refresh all
+      updateHeader();
+      renderRealm();
+      renderQuotes();
+      renderWarnings();
+      renderAtlas();
+      showToast('📥 数据已导入！');
+    } catch(err){
+      alert('数据解析失败：'+err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ===================================================================
+// UPDATE INIT TO CHECK ACHIEVEMENTS
+// ===================================================================
+// Check and unlock achievements on endTraining
+// (called from endTraining)
+function checkAchievements(){
+  if(!appData.achievements) appData.achievements = [];
+  
+  ACHIEVEMENTS.forEach(function(ach){
+    if(appData.achievements.indexOf(ach.id) !== -1) return;
+    
+    var unlock = false;
+    switch(ach.id){
+      case 'first_pr':
+        unlock = appData.exercises.some(function(e){ return e.prCount > 0; });
+        break;
+      case 'qi_500':
+        unlock = appData.sessions.some(function(s){ return s.totalQi >= 500; });
+        break;
+      case 'consecutive_30':
+        unlock = appData.maxConsecutiveDays >= 30;
+        break;
+      case 'rest_50':
+        unlock = appData.totalRestDays >= 50;
+        break;
+      case 'trib_10':
+        unlock = (appData.tribulations && appData.tribulations.small.length + appData.tribulations.large.length >= 10);
+        break;
+      case 'realm_7':
+        unlock = getRealmFromQi(appData.totalQi).idx >= 7;
+        break;
+    }
+    
+    if(unlock){
+      appData.achievements.push(ach.id);
+      showToast('🏆 成就解锁：'+ach.icon+' '+ach.name+'！');
+    }
+  });
+  
+  saveData();
+}
+
+// ===================================================================
+// INIT ON DOM READY
+// ===================================================================
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
