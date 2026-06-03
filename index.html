@@ -726,21 +726,22 @@ const EXERCISE_INFO = {
 };
 
 const NPC_DATA = [
-  // 梯队1：顶级大佬（1.35x）— 修行数百年的传说级人物
-  { name:'枯木尊者', title:'枯木崖隐士', desc:'年过古稀，须发皆白。曾是大乾王朝第一高手，退隐山林后以枯木为伴。看似风烛残年，实则修为通玄。修炼时日之长为众人之最。', quote:'「呵呵……老夫年轻时也像你这么拼。好，有当年老夫的风范。」' },
-  // 梯队2：一流高手（1.15x~1.20x）— 各派掌门/长老级别
-  { name:'九霄真人', title:'云霄阁长老', desc:'出身名门正派，天资卓绝，修为深不可测。举手投足间带着一丝高傲——他有高傲的资本。云霄阁三千弟子，能得他亲自指点的寥寥无几。', quote:'「天赋是起点，不是终点——这个道理，平庸之辈永远不会懂。」' },
-  { name:'寒冰剑圣', title:'冰渊剑主', desc:'常年居于极北冰渊，性情冷峻如霜。剑道造诣已入化境，天下剑修莫不敬仰三分。虽外表冷酷，对向道之心坚定者却格外宽容。', quote:'「……剑要练，心更要练。你的剑心，可曾动摇过？」' },
-  // 梯队3：中坚力量（0.95x~1.05x）— 与你实力相当的劲敌
-  { name:'归元道人', title:'归元宗宗主', desc:'道法自然，返璞归真。看起来就像个田间老人，但一开口便是至理名言。修为平和中正，不争不抢——但真要动手，没人敢小觑。', quote:'「大道至简。你每天多练一组，比求仙问佛管用得多。」' },
-  { name:'北冥散人', title:'北海散修', desc:'常年独行于北冥之海，以惊涛骇浪锤炼肉身。无门无派，全靠自己摸索走到今天。沉默寡言，但每言必中——经历过大风大浪的人话都不多。', quote:'「北海无边，大道无涯。你我皆在途中，何谈先后？」' },
-  { name:'铁骨罗汉', title:'金刚寺首座', desc:'自幼以铜人阵淬体，浑身筋骨坚如金石。修炼法门朴实无华——就是日复一日地练。不喜言语，但一拳一脚皆是千锤百炼之功。', quote:'「筋骨不磨不成器。少说话，多练功。」' },
-  // 梯队4：后起之秀（0.75x~0.85x）— 潜力股，正在追赶
-  { name:'烈焰拳宗', title:'烈阳谷主', desc:'脾气火爆，性格直爽。一手烈焰拳法霸道无比。虽然修为尚不及老一辈，但那股拼劲谁见了都得让三分。每天都在挑战比自己强的人。', quote:'「修炼就要拿出气势来！扭扭捏捏的练什么功？燃起来！」' },
-  { name:'青莲剑修', title:'剑渊传人', desc:'一柄青莲剑走天涯，师从剑道名家，天赋极高但修炼时日尚短。剑法已颇有章法，只是火候未到。气质清冷，但对实力强于自己的人会流露出难得的敬意。', quote:'「我现在不如你，但三个月后——我们再看。」' },
-  // 梯队5：初入道途（0.60x~0.65x）— 尚在打磨根基
-  { name:'碧落仙子', title:'碧落宫弟子', desc:'碧落宫年轻一代的佼佼者，天资聪颖但修行时日尚浅。根基打得扎实，只是还缺几分火候和历练。性格温和谦逊，乐于向各路高手请教。', quote:'「修炼如煮茶，火候太急则苦，太慢则淡。我在找自己的节奏。」' },
-  { name:'金刚护法', title:'护法堂弟子', desc:'金刚寺年轻弟子，身材魁梧，性情憨厚。修炼最是勤勉，每天天不亮就起来练功。虽然天赋平平，但这份坚持让寺中长老都另眼相看。', quote:'「我天赋不好，那就多练一会儿——别人练三组，我就练五组！」' },
+  // ---- 第一梯队：传说级（固定 50,000~80,000）----
+  { name:'枯木尊者', title:'枯木崖隐士', qi:80000, desc:'年过古稀，须发皆白。曾是大乾王朝第一高手，退隐山林百年，以枯木为伴。世间已无人记得他出手是什么模样——因为见过的都已不在人世。', quote:'「呵呵……老夫年轻时也像你这么拼。好，有当年老夫的风范。」' },
+  // ---- 第二梯队：掌门级（固定 15,000~25,000）----
+  { name:'九霄真人', title:'云霄阁长老', qi:25000, desc:'云霄阁三千弟子之首，天资卓绝，修为通玄。性格高傲孤冷，但他确实有高傲的资本——同辈之中从未逢敌手。能入他法眼的年轻一辈屈指可数。', quote:'「天赋决定起点，但决定不了终点。能走多远，看你肯吃多少苦。」' },
+  { name:'寒冰剑圣', title:'极北剑尊', qi:18000, desc:'常年独居极北冰渊，以万载寒冰磨砺剑心。性情冷峻如霜雪，一言不发时便让人脊背发凉。但若你以诚心求教，他会沉默地听完，然后给你最精辟的指点。', quote:'「……剑招有形，剑意无形。有形者易学，无形者——只能自己悟。」' },
+  // ---- 第三梯队：高手级（固定 5,000~10,000）----
+  { name:'归元道人', title:'归元宗宗主', qi:10000, desc:'返璞归真的一代宗师。看上去就是个田间老农，常蹲在宗门口晒太阳嗑瓜子。但一开口便是道尽修炼真谛的至理名言。各大门派的长老都曾暗中来向他请教。', quote:'「修炼就三件事：吃好、练好、睡好。别整那些花里胡哨的，大道至简。」' },
+  { name:'北冥散人', title:'北海散修', qi:6000, desc:'无门无派，独行侠。常年在北冥海域以肉身硬撼风浪，以此锤炼筋骨。一身本事全是生死间磨出来的，不讲章法只求实效。沉默寡言，但句句在点。', quote:'「海上的浪不会因为你弱就小一点。修炼也一样——要么扛住，要么沉下去。」' },
+  // ---- 第四梯队：新锐级（固定 2,000~4,000）----
+  { name:'铁骨罗汉', title:'金刚寺武僧', qi:3500, desc:'金刚寺年轻一代最能打的武僧。修炼法门极其朴实——铜人阵里日复一日地打熬筋骨。从不偷懒，也从不抱怨。他相信最简单的方法往往最有效。', quote:'「我不聪明，那我就多练。别人练一遍，我练十遍，总能赶上。」' },
+  { name:'赤焰', title:'烈阳谷传人', qi:2000, desc:'烈阳谷最年轻的核心弟子，脾气和他的功法一样火爆。挑战高手是他最大的乐趣——打不过也要打，打完回去苦练，练好再来。每天都在进步。', quote:'「打不过就练，练好了再打！磨磨唧唧的那叫修炼吗？」' },
+  // ---- 第五梯队：筑基级（固定 500~1,200）----
+  { name:'柳溪', title:'流水阁弟子', qi:1200, desc:'修行四年的勤奋弟子。天资中等，但胜在心如止水、从不急躁。每天按部就班地完成功课，不求快但求稳。师父说她这种性格前期慢，后期反而走得更远。', quote:'「我不跟别人比，就跟昨天的自己比——多做了一个俯卧撑也是进步。」' },
+  { name:'青莲', title:'剑渊外门弟子', qi:500, desc:'刚入剑渊半年的外门小师弟，天赋不错但还在打基础。每天天不亮就起来练基本功——挥剑一千次。虽然离内门还远，但他的认真劲儿已经引起了几位长老的注意。', quote:'「师兄好！……我什么时候才能像您一样厉害？」' },
+  // ---- 第六梯队：入门级（固定 100~300）----
+  { name:'小金刚', title:'金刚寺沙弥', qi:150, desc:'金刚寺最年幼的沙弥，刚入门三个月，还在打熬最基础的体魄。每天被师兄们安排扎马步、挑水、劈柴。虽然累得嗷嗷叫，但从没说过放弃。', quote:'「师兄说等我挑满一千天水就能学功法了——今天是第三百二十一趟！」' },
 ];
 
 const QUOTES = [
@@ -771,7 +772,7 @@ const QUOTES = [
   { text:'「道友休整数日，灵力已沉淀完毕，今日正是出关良机」', type:'return' },
 ];
 
-const NPC_QI_MULTIPLIERS = [1.35, 1.20, 1.15, 1.05, 0.95, 0.90, 0.85, 0.75, 0.65, 0.60];
+const NPC_QI_MULTIPLIERS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; // Not used with fixed Qi
 
 const BT_NARRATIVES = {
   '凡人之躯':['你的经脉在微弱震颤……','每一滴汗水都是灵力的种子','凡人之躯，亦有不凡之心'],
@@ -848,13 +849,15 @@ function loadData(){
     if(raw) appData = JSON.parse(raw);
     else appData = null;
   }catch(e){ appData = null; }
-  // Data migration: ensure NPC data has new fields
+  // Data migration: ensure NPC data has new fields + fixed qi
   if(appData && appData.npcLeaderboard){
     appData.npcLeaderboard.forEach(function(npc, i){
       var src = NPC_DATA[i] || {};
       if(!npc.npcTitle) npc.npcTitle = src.title || '散修';
       if(!npc.desc) npc.desc = src.desc || '一位修仙路上的行者。';
       if(!npc.quote) npc.quote = src.quote || '「……继续努力。」';
+      // Use fixed qi from NPC_DATA if available
+      if(src.qi !== undefined) npc.qi = src.qi;
     });
     saveData();
   }
@@ -899,7 +902,8 @@ function getDefaultData(){
     secretRealm:{ active:null, history:[], lastAppearance:null, weekCount:0, weekStart:null },
     achievements:[],
     npcLeaderboard:NPC_DATA.map(function(npc,i){
-      return { name:npc.name, npcTitle:npc.title, desc:npc.desc, quote:npc.quote, qi:0, title:REALMS[0].name+'·初期' };
+      var r = getRealmFromQi(npc.qi || 0);
+      return { name:npc.name, npcTitle:npc.title, desc:npc.desc, quote:npc.quote, qi:npc.qi || 0, title:REALMS[r.idx].name+'·'+STAGES[r.stage] };
     }),
     trainingRoute:null,
     customExercises:[],
@@ -2096,13 +2100,9 @@ function updateWeeklyHistory(today, qi){
 }
 
 function updateNPC(){
-  appData.npcLeaderboard.forEach((npc,i)=>{
-    const mult = NPC_QI_MULTIPLIERS[i % NPC_QI_MULTIPLIERS.length];
-    // NPC grows based on user's progress
-    const targetQi = Math.round(appData.totalQi * mult);
-    // Gradual approach
-    npc.qi = Math.round(npc.qi + (targetQi - npc.qi) * 0.1);
-    const r = getRealmFromQi(npc.qi);
+  // Fixed NPC levels — only update realm title based on their fixed qi
+  appData.npcLeaderboard.forEach(function(npc){
+    var r = getRealmFromQi(npc.qi || 0);
     npc.title = REALMS[r.idx].name + '·' + STAGES[r.stage];
   });
 }
