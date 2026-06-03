@@ -542,6 +542,7 @@ body{
     <div class="realm-header-card">
       <div class="big-realm" id="realm-title" onclick="showRealmTable()" style="cursor:pointer" title="点击查看完整境界表">凡人之躯·初期 <span style="font-size:14px;color:var(--text2)">📖</span></div>
       <div class="qi-today">今日获取灵力：<span id="today-qi-display">0</span></div>
+      <div id="today-plan-text" style="font-size:13px;color:var(--gold);margin-top:4px"></div>
       <div class="consecutive">闭关第 <span id="consecutive-display">0</span> 天</div>
     </div>
     <div id="rest-suggestion-area"></div>
@@ -901,6 +902,7 @@ function getDefaultData(){
     })),
     tribulations:{ small:[], large:[] },
     secretRealm:{ active:null, history:[], lastAppearance:null, weekCount:0, weekStart:null },
+    trainingJournal:{ plans:{}, notes:{}, currentMonth:null },
     achievements:[],
     npcLeaderboard:NPC_DATA.map(function(npc,i){
       var r = getRealmFromQi(npc.qi || 0);
@@ -1204,22 +1206,24 @@ function renderRealm(){
   document.getElementById('today-qi-display').textContent = appData.todayQi || 0;
   document.getElementById('consecutive-display').textContent = appData.consecutiveDays || 0;
 
-  // Route recommendation
-  const routeArea = document.getElementById('route-recommendation');
-  if(routeArea){
-    var routeHtml = '';
+  // Today's plan text
+  var planText = document.getElementById('today-plan-text');
+  if(planText){
+    var txt = '';
     if(appData.trainingRoute && appData.trainingRoute !== 'none'){
-      const route = ROUTES.find(function(r){ return r.id === appData.trainingRoute; });
-      if(route){
-        routeHtml = '<div style="background:rgba(201,169,110,.08);border:1px solid rgba(201,169,110,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px">';
-        routeHtml += '<span style="font-size:16px">🗺️</span>';
-        routeHtml += '<div style="flex:1"><div style="font-size:13px;color:var(--text)">今日建议修炼</div><div style="font-size:12px;color:var(--gold)">'+route.name+' · '+route.freq+'</div></div>';
-        routeHtml += '<button onclick="switchPage(\'skills\')" style="background:none;border:1px solid rgba(201,169,110,.3);color:var(--gold);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer">切换</button>';
-        routeHtml += '</div>';
+      var tp = getTodayPlan();
+      if(tp && tp.exercises && tp.exercises.length > 0){
+        txt = '今天应当修炼：' + tp.exercises.join('、');
+      } else {
+        txt = '🧘 今天应当休息——巩固根基，一张一弛';
       }
     }
-    routeArea.innerHTML = routeHtml;
+    planText.textContent = txt;
   }
+  
+  // Route recommendation (replaced by above)
+  const routeArea = document.getElementById('route-recommendation');
+  if(routeArea) routeArea.innerHTML = '';
 
   // Start training button
   const btn = document.getElementById('start-training-btn');
@@ -1356,6 +1360,7 @@ function switchPage(name){
     renderSecretRealm();
   } else if(name === 'atlas'){
     renderAtlas();
+    renderCalendar();
   }
 }
 
@@ -2423,6 +2428,208 @@ function showFullHistory(exName, exGlobalIdx){
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 }
 
+
+// ===================================================================
+// CALENDAR TRAINING LOG
+// ===================================================================
+var _calMonth = null;
+function renderCalendar(){
+  var container = document.getElementById('day-detail-area');
+  if(!container) return;
+  var today = getTodayStr();
+  var now = new Date();
+  var year = _calMonth ? _calMonth.year : now.getFullYear();
+  var month = _calMonth ? _calMonth.month : now.getMonth();
+  if(!appData.trainingJournal) appData.trainingJournal = { plans:{}, notes:{}, currentMonth:null };
+  
+  var firstDay = new Date(year, month, 1);
+  var lastDay = new Date(year, month + 1, 0);
+  var startDay = firstDay.getDay(); // 0=Sun
+  var daysInMonth = lastDay.getDate();
+  var monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  var weekDays = ['日','一','二','三','四','五','六'];
+  
+  var html = '<div style="background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:12px;border:1px solid rgba(201,169,110,.1)">';
+  // Month nav
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  html += '<button onclick="changeMonth(-1)" style="background:none;border:1px solid rgba(201,169,110,.2);color:var(--gold);padding:4px 10px;border-radius:6px;font-size:13px;cursor:pointer">‹ 上月</button>';
+  html += '<span style="font-size:15px;font-weight:600;color:var(--gold2)">'+year+'年 '+monthNames[month]+'</span>';
+  html += '<button onclick="changeMonth(1)" style="background:none;border:1px solid rgba(201,169,110,.2);color:var(--gold);padding:4px 10px;border-radius:6px;font-size:13px;cursor:pointer">下月 ›</button>';
+  html += '</div>';
+  
+  // Week day headers
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">';
+  weekDays.forEach(function(d){
+    html += '<div style="text-align:center;font-size:10px;color:var(--text2);padding:2px">'+d+'</div>';
+  });
+  html += '</div>';
+  
+  // Calendar grid
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+  // Empty cells before first day
+  for(var i=0; i<startDay; i++){
+    html += '<div style="padding:4px;text-align:center"></div>';
+  }
+  // Day cells
+  for(var d=1; d<=daysInMonth; d++){
+    var dateObj = new Date(year, month, d);
+    var dateStr = dateObj.toISOString().slice(0,10);
+    var isToday = dateStr === today;
+    var daySess = appData.sessions.filter(function(s){ return s.date === dateStr; });
+    var isPlanned = false;
+    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
+      var pp = getTodayPlanForDate(dateStr);
+      if(pp && pp.exercises && pp.exercises.length > 0) isPlanned = true;
+    }
+    // Check if user cancelled
+    var planOverride = appData.trainingJournal.plans[dateStr];
+    if(planOverride && planOverride.cancelled) isPlanned = false;
+    if(planOverride && planOverride.isRestDay) isPlanned = false;
+    
+    html += '<div onclick="showCalendarDay(\''+dateStr+'\')" style="text-align:center;padding:4px 1px;border-radius:6px;cursor:pointer;font-size:11px;'+(isToday?'background:rgba(201,169,110,.2);border:1px solid var(--gold)':'')+'">';
+    html += '<div style="font-weight:'+(isToday?'700':'400')+';color:var(--text)">'+d+'</div>';
+    if(daySess.length > 0){
+      html += '<div style="font-size:9px;color:var(--success)">✅</div>';
+    } else if(isPlanned && dateStr >= today){
+      html += '<div style="font-size:9px;color:var(--gold)">📋</div>';
+    } else if(isPlanned && dateStr < today){
+      html += '<div style="font-size:9px;color:var(--warm)">⏳</div>';
+    }
+    // Show note indicator
+    if(appData.trainingJournal.notes[dateStr]){
+      html += '<div style="font-size:8px;color:var(--text2)">📝</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  
+  // Calendar day detail area
+  html += '<div id="cal-day-detail"></div>';
+  
+  container.innerHTML = html;
+}
+
+function changeMonth(delta){
+  var now = new Date();
+  var year = _calMonth ? _calMonth.year : now.getFullYear();
+  var month = _calMonth ? _calMonth.month : now.getMonth();
+  month += delta;
+  if(month < 0){ month = 11; year--; }
+  if(month > 11){ month = 0; year++; }
+  _calMonth = { year: year, month: month };
+  renderCalendar();
+}
+
+function showCalendarDay(dateStr){
+  var area = document.getElementById('cal-day-detail');
+  if(!area) return;
+  var daySess = appData.sessions.filter(function(s){ return s.date === dateStr; });
+  var plan = null;
+  if(appData.trainingRoute && appData.trainingRoute !== 'none') plan = getTodayPlanForDate(dateStr);
+  var override = appData.trainingJournal.plans[dateStr] || {};
+  var note = appData.trainingJournal.notes[dateStr] || '';
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:14px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  html += '<div style="font-size:14px;font-weight:600;color:var(--gold2)">📅 '+dateStr+'</div>';
+  html += '<button onclick="document.getElementById(\'cal-day-detail\').innerHTML=\'\'" style="background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer">✕</button>';
+  html += '</div>';
+  
+  // Training plan section
+  html += '<div style="margin-bottom:8px">';
+  if(override.cancelled){
+    html += '<div style="font-size:12px;color:var(--text2);font-style:italic">此日训练计划已取消</div>';
+  } else if(override.isRestDay){
+    html += '<div style="font-size:13px;color:var(--warm)">🧘 休息日</div>';
+  } else if(plan && plan.exercises && plan.exercises.length > 0){
+    html += '<div style="font-size:12px;color:var(--gold);margin-bottom:4px">📋 计划修炼：</div>';
+    plan.exercises.forEach(function(exName){
+      html += '<div style="font-size:12px;color:var(--text);padding:2px 0">· '+exName+'</div>';
+    });
+  } else {
+    html += '<div style="font-size:12px;color:var(--text2)">无训练计划</div>';
+  }
+  html += '</div>';
+  
+  // Actions
+  if(plan && plan.exercises && plan.exercises.length > 0 && dateStr >= getTodayStr()){
+    if(!override.cancelled && !override.isRestDay){
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">';
+      html += '<button onclick="cancelPlanDay(\''+dateStr+'\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:rgba(139,0,0,.15);color:#ff6b6b;font-size:11px;cursor:pointer">取消计划</button>';
+      html += '<button onclick="setRestDay(\''+dateStr+'\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:rgba(240,192,96,.12);color:var(--warm);font-size:11px;cursor:pointer">设为休息日</button>';
+      html += '</div>';
+    } else {
+      html += '<button onclick="restorePlanDay(\''+dateStr+'\')" style="width:100%;padding:6px;margin-bottom:8px;border:none;border-radius:6px;background:rgba(201,169,110,.12);color:var(--gold);font-size:11px;cursor:pointer">恢复计划</button>';
+    }
+  }
+  
+  // Actual training
+  if(daySess.length > 0){
+    html += '<div style="font-size:12px;color:var(--success);margin-bottom:4px">✅ 已完成修炼</div>';
+    daySess.forEach(function(s){
+      html += '<div style="background:rgba(0,0,0,.1);border-radius:6px;padding:6px;margin-bottom:4px">';
+      s.exercises.forEach(function(item){
+        var ex = appData.exercises[item.exerciseIdx];
+        if(!ex) return;
+        html += '<div style="font-size:11px;color:var(--text);margin-bottom:2px">'+ex.emoji+' '+ex.name+'</div>';
+        item.sets.forEach(function(set, si){
+          html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);padding:1px 0">';
+          html += '<span>第'+(si+1)+'组</span><span>'+(set.weight||'自重')+'kg × '+set.reps+' 次</span></div>';
+        });
+      });
+      html += '<div style="font-size:10px;color:var(--gold-bright);margin-top:2px">+'+s.totalQi+' 灵力</div>';
+      html += '</div>';
+    });
+  }
+  
+  // Notes
+  html += '<div style="margin-top:8px">';
+  html += '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">📝 修炼心得</label>';
+  html += '<textarea id="cal-note-'+dateStr.replace(/-/g,'')+'" style="width:100%;padding:8px;border:1px solid rgba(201,169,110,.15);border-radius:6px;background:rgba(0,0,0,.2);color:var(--text);font-size:12px;outline:none;resize:vertical;min-height:60px;font-family:inherit">'+note+'</textarea>';
+  html += '<button onclick="saveNote(\''+dateStr+'\')" style="width:100%;padding:8px;margin-top:4px;border:none;border-radius:6px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:12px;font-weight:600;cursor:pointer">保存心得</button>';
+  html += '</div>';
+  
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function cancelPlanDay(dateStr){
+  if(!appData.trainingJournal) appData.trainingJournal = { plans:{}, notes:{} };
+  if(!appData.trainingJournal.plans) appData.trainingJournal.plans = {};
+  appData.trainingJournal.plans[dateStr] = { cancelled: true };
+  saveData();
+  showToast('🗑️ 已取消 '+dateStr+' 的训练计划');
+  renderCalendar();
+}
+
+function setRestDay(dateStr){
+  if(!appData.trainingJournal) appData.trainingJournal = { plans:{}, notes:{} };
+  if(!appData.trainingJournal.plans) appData.trainingJournal.plans = {};
+  appData.trainingJournal.plans[dateStr] = { isRestDay: true };
+  saveData();
+  showToast('🧘 '+dateStr+' 已设为休息日');
+  renderCalendar();
+}
+
+function restorePlanDay(dateStr){
+  if(appData.trainingJournal && appData.trainingJournal.plans){
+    delete appData.trainingJournal.plans[dateStr];
+    saveData();
+    showToast('✅ 已恢复 '+dateStr+' 的训练计划');
+    renderCalendar();
+  }
+}
+
+function saveNote(dateStr){
+  var input = document.getElementById('cal-note-'+dateStr.replace(/-/g,''));
+  if(!input) return;
+  if(!appData.trainingJournal) appData.trainingJournal = { plans:{}, notes:{} };
+  if(!appData.trainingJournal.notes) appData.trainingJournal.notes = {};
+  appData.trainingJournal.notes[dateStr] = input.value;
+  saveData();
+  showToast('📝 心得已保存');
+  renderCalendar();
+}
 function createCustomExercise(){
   const name = document.getElementById('ce-name').value.trim();
   const emoji = document.getElementById('ce-emoji').value.trim() || '📜';
@@ -3283,71 +3490,8 @@ function renderAtlas(){
   
   var html = '';
   
-  // ====== 修炼日志（合并总览+周历+周灵力）======
-  var realmInfo = getRealmFromQi(appData.totalQi);
-  var totalSessions = appData.sessions.length;
-  var totalRest = appData.totalRestDays || 0;
-  // ====== 修炼日志（合并总览+周历+周灵力）======
-  html += '<div class="atlas-section">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-  html += '<h3 style="font-size:16px;color:var(--gold2);margin:0">📋 修炼日志</h3>';
-  html += '<div style="font-size:12px;color:var(--text2)">总灵力 <span style="color:var(--gold-bright);font-weight:600">'+appData.totalQi+'</span> · 修炼 <span style="color:var(--success);font-weight:600">'+totalSessions+'</span> 次</div></div>';
-  
-  var todayStr = getTodayStr();
-  var d = new Date();
-  var monOffset = d.getDay() === 0 ? 6 : d.getDay() - 1;
-  var weekDays = ['周一','周二','周三','周四','周五','周六','周日'];
-  
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">';
-  for(var wi=0; wi<7; wi++){
-    var dateObj = new Date(d); dateObj.setDate(d.getDate()-monOffset+wi);
-    var dateStr = dateObj.toISOString().slice(0,10);
-    var isToday = dateStr === todayStr;
-    var daySess = appData.sessions.filter(function(s){ return s.date === dateStr; });
-    var dayQi = 0; daySess.forEach(function(s){ dayQi += s.totalQi || 0; });
-    var hasPlan = false;
-    if(appData.trainingRoute && appData.trainingRoute !== 'none'){ var p=getTodayPlanForDate(dateStr); if(p&&p.exercises&&p.exercises.length>0) hasPlan=true; }
-    var isFuture = dateStr > todayStr;
-    html += '<div onclick="showDayDetail(\''+dateStr+'\')" style="text-align:center;padding:5px 1px;border-radius:6px;font-size:10px;cursor:pointer;'+(isToday?'background:rgba(201,169,110,.15);border:1px solid var(--gold)':'')+'">';
-    html += '<div style="color:var(--text2)">'+weekDays[wi]+'</div>';
-    if(daySess.length>0) html += '<div style="color:var(--success);font-weight:700">✅</div><div style="color:var(--gold-bright);font-size:9px">+'+dayQi+'</div>';
-    else if(isFuture) html += hasPlan?'<div style="color:var(--gold);font-size:9px">📋</div>':'<div style="color:var(--text2);font-size:9px">—</div>';
-    else html += hasPlan?'<div style="color:var(--warm);font-size:9px">⏳</div>':'<div style="color:var(--text2);font-size:9px">—</div>';
-    html += '</div>';
-  }
-  html += '</div>';
-  
-  var weekTotalQi=0, weekActual=0, weekPlanned=0;
-  for(var wi=0; wi<7; wi++){
-    var dateObj=new Date(d); dateObj.setDate(d.getDate()-monOffset+wi);
-    var dateStr=dateObj.toISOString().slice(0,10);
-    var daySess=appData.sessions.filter(function(s){ return s.date===dateStr; });
-    daySess.forEach(function(s){ weekTotalQi+=s.totalQi||0; });
-    if(daySess.length>0) weekActual++;
-    if(appData.trainingRoute&&appData.trainingRoute!=='none'){var p2=getTodayPlanForDate(dateStr);if(p2&&p2.exercises&&p2.exercises.length>0&&dateStr<=todayStr) weekPlanned++;}
-  }
-  html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px">';
-  html += '<span>本周训练 <span style="color:var(--success);font-weight:600">'+weekActual+'</span> 天</span>';
-  if(weekPlanned>0) html += '<span>计划 <span style="color:'+(weekActual>=weekPlanned?'var(--success)':'var(--warm)')+';font-weight:600">'+weekActual+'/'+weekPlanned+'</span></span>';
-  var ratio = totalRest>0 ? (totalSessions/totalRest).toFixed(1) : totalSessions;
-  html += '<span>休练比 <span style="color:var(--text2);font-weight:600">1:'+ratio+'</span></span>';
-  html += '<span>总灵力 <span style="color:var(--gold-bright);font-weight:600">'+weekTotalQi+'</span></span>';
-  html += '</div>';
-  
-  html += '<div id="day-detail-area" style="margin-bottom:6px"></div>';
-  
-  var maxWeekQi=1, weekData=[];
-  for(var w=5; w>=0; w--){
-    var ws=getWeekStart(todayStr,w); var total=0;
-    if(appData.weeklyQiHistory) appData.weeklyQiHistory.forEach(function(wh){ if(wh.week===ws) total+=wh.total; });
-    weekData.push({week:ws,total:total}); if(total>maxWeekQi) maxWeekQi=total;
-  }
-  if(maxWeekQi===0) maxWeekQi=1;
-  html += '<div style="padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">';
-  weekData.forEach(function(wd){
-    html += '<div class="chart-bar-wrap"><div class="chart-label" style="width:48px;font-size:10px">'+wd.week.slice(5)+'</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.max(2,Math.round(wd.total/maxWeekQi*100))+'%"></div></div><div class="chart-bar-value" style="font-size:10px">'+wd.total+'</div></div>';
-  });
-  html += '</div></div>';
+  // ====== 日历式训练日志 ======
+  html += '<div id="day-detail-area"></div>';
   // Timeline (realm breakthroughs)
   html += '<div class="atlas-section">';
   html += '<h3>🏔️ 境界突破时间线</h3>';
