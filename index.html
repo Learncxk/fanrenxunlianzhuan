@@ -556,6 +556,7 @@ body{
       <h2>今日修炼</h2>
       <div class="today-qi">灵力：<span id="training-qi-display">0</span></div>
     </div>
+    <div id="training-route-plan"></div>
     <div id="muscle-warning-area"></div>
     <div class="add-exercise-bar">
       <select id="exercise-select">
@@ -1287,7 +1288,43 @@ function goToTraining(){
 // ===================================================================
 function renderTraining(){
   const today = getTodayStr();
-  const hasSessionToday = appData.sessions.some(s => s.date === today);
+  const hasSessionToday = appData.sessions.some(function(s){ return s.date === today; });
+
+  // Route plan recommendation
+  const routeArea = document.getElementById('training-route-plan');
+  if(routeArea){
+    const plan = getTodayPlan();
+    if(plan){
+      var pHtml = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;border:1px solid rgba(201,169,110,.15)">';
+      pHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+      pHtml += '<span style="font-size:18px">🗺️</span>';
+      pHtml += '<div><div style="font-size:14px;font-weight:600;color:var(--gold2)">今日修炼：'+plan.dayName+'</div>';
+      pHtml += '<div style="font-size:12px;color:var(--text2)">'+plan.plan.weekFreq+'</div></div></div>';
+      pHtml += '<div style="font-size:12px;color:var(--text);margin-bottom:8px">推荐功法：</div>';
+      plan.exercises.forEach(function(exName){
+        const repRange = plan.plan.repRanges[exName] || '10次 × 3组';
+        pHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04)">';
+        pHtml += '<span>'+exName+'</span>';
+        pHtml += '<span style="color:var(--text2);font-size:12px">'+repRange+'</span>';
+        pHtml += '</div>';
+      });
+      // Check if any recommended exercises are not yet in currentTraining
+      var hasMissing = false;
+      plan.exercises.forEach(function(exName){
+        const exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
+        if(exIdx === -1) return;
+        var found = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
+        if(!found) hasMissing = true;
+      });
+      pHtml += '<button onclick="addRoutePlanExercises()" style="width:100%;padding:10px;margin-top:8px;border:none;border-radius:8px;background:'+(hasMissing?'linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e':'rgba(92,184,92,.15);color:var(--success)')+';font-size:14px;font-weight:600;cursor:pointer;min-height:44px">';
+      pHtml += hasMissing ? '📋 一键添加推荐功法' : '✅ 今日推荐功法已全部添加';
+      pHtml += '</button>';
+      pHtml += '</div>';
+      routeArea.innerHTML = pHtml;
+    } else {
+      routeArea.innerHTML = '';
+    }
+  }
 
   // Populate exercise select
   const sel = document.getElementById('exercise-select');
@@ -1802,6 +1839,81 @@ const ROUTES = [
   { id:'custom', name:'自创功法', desc:'完全自定义训练日', freq:'自由', info:'随心所欲，编写你自己的修炼法门' },
 ];
 
+// 科学训练计划数据
+const ROUTE_PLANS = {
+  // 凡骨淬体法 — 全身训练 3 天/周 (A/B/C 轮换)
+  beginner: {
+    days: ['全身A','全身B','全身A'],
+    getDay: function(weekIndex) {
+      return this.days[weekIndex % 3];
+    },
+    exercises: {
+      '全身A': ['深蹲','卧推','划船','卷腹'],
+      '全身B': ['硬拉','肩推','引体向上','臀桥'],
+    },
+    repRanges: {
+      '深蹲':'8-12次 × 3组','卧推':'8-12次 × 3组','划船':'10-15次 × 3组','卷腹':'15-20次 × 3组',
+      '硬拉':'6-10次 × 3组','肩推':'8-12次 × 3组','引体向上':'力竭 × 3组','臀桥':'12-15次 × 3组',
+    },
+    weekFreq: '每周 3 天（如周一、三、五）',
+  },
+  // 三脉同修法 — PPL 4-5 天/周
+  ppl: {
+    days: ['推日','拉日','腿日'],
+    getDay: function(weekIndex) {
+      return this.days[weekIndex % 3];
+    },
+    exercises: {
+      '推日': ['卧推','肩推','俯卧撑','哑铃弯举'],
+      '拉日': ['硬拉','引体向上','划船','臀桥'],
+      '腿日': ['深蹲','卷腹','臀桥'],
+    },
+    repRanges: {
+      '卧推':'8-12次 × 4组','肩推':'10-12次 × 3组','俯卧撑':'力竭 × 3组','哑铃弯举':'10-12次 × 3组',
+      '硬拉':'6-10次 × 3组','引体向上':'力竭 × 3组','划船':'10-12次 × 4组','臀桥':'12-15次 × 3组',
+      '深蹲':'8-12次 × 4组','卷腹':'15-20次 × 3组',
+    },
+    weekFreq: '每周 4-5 天（如推/拉/腿/推/拉）',
+  },
+  // 五行轮转法 — 上下肢分化 4 天/周
+  upperlower: {
+    days: ['上肢A','下肢A','上肢B','下肢B'],
+    getDay: function(weekIndex) {
+      return this.days[weekIndex % 4];
+    },
+    exercises: {
+      '上肢A': ['卧推','划船','肩推','引体向上'],
+      '下肢A': ['深蹲','硬拉','臀桥'],
+      '上肢B': ['俯卧撑','引体向上','哑铃弯举','肩推'],
+      '下肢B': ['深蹲','硬拉','卷腹'],
+    },
+    repRanges: {
+      '卧推':'8-12次 × 4组','划船':'10-12次 × 4组','肩推':'8-12次 × 3组','引体向上':'力竭 × 3组',
+      '深蹲':'8-12次 × 4组','硬拉':'6-10次 × 3组','臀桥':'12-15次 × 3组',
+      '俯卧撑':'力竭 × 3组','哑铃弯举':'10-12次 × 3组','卷腹':'15-20次 × 3组',
+    },
+    weekFreq: '每周 4 天（如周一上肢/周二下肢/周四上肢/周五下肢）',
+  },
+  custom: null,
+};
+
+function getTodayPlan(){
+  const routeId = appData.trainingRoute;
+  if(!routeId || routeId === 'none') return null;
+  const plan = ROUTE_PLANS[routeId];
+  if(!plan) return null;
+  // Calculate week index from first session date or use today
+  const startDate = appData.sessions.length > 0 ? appData.sessions[0].date : getTodayStr();
+  const daysSinceStart = daysBetween(startDate, getTodayStr());
+  const dayName = plan.getDay(daysSinceStart);
+  const exNames = plan.exercises[dayName] || [];
+  return {
+    plan: plan,
+    dayName: dayName,
+    exercises: exNames,
+  };
+}
+
 function renderRoutes(){
   const area = document.getElementById('route-selection-area');
   if(!area) return;
@@ -1818,6 +1930,23 @@ function renderRoutes(){
   });
   html += '</div>';
   area.innerHTML = html;
+}
+
+function addRoutePlanExercises(){
+  const plan = getTodayPlan();
+  if(!plan) return;
+  plan.exercises.forEach(function(exName){
+    const exIdx = appData.exercises.findIndex(function(e){ return e.name === exName && !e._deleted; });
+    if(exIdx === -1) return;
+    var exists = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
+    if(!exists){
+      currentTraining.push({ exerciseIdx: exIdx, sets: [{ reps: 10, weight: 0 }] });
+    }
+  });
+  renderTrainingList();
+  renderTraining();
+  updateTrainingQiDisplay();
+  showToast('📋 已添加今日推荐功法！请根据自身能力调整次数和重量');
 }
 
 function selectRoute(id){
