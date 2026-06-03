@@ -2481,6 +2481,7 @@ const ROUTE_PLANS = {
       '硬拉':'6-10次 × 3组','肩推':'8-12次 × 3组','引体向上':'力竭 × 3组','臀桥':'12-15次 × 3组',
     },
     weekFreq: '每周 3 天（如周一、三、五）',
+    detail: '全身训练分化，每次训练覆盖全身主要肌群。A/B 两套训练日交替进行。\n\n适合刚踏入修行之门的道友——每周 3 次的频率足够刺激肌肉生长又不至于过度训练。每个主要动作 3 组、8-12 次的参数区间是增肌的最佳平衡点。\n\n⚠️ 新手提示：前两周先用空杆或小重量熟悉动作模式，不要急着加重量。动作质量永远比重量重要。',
   },
   // 三脉同修法 — 严格推/拉/腿三分化 (PPL)
   ppl: {
@@ -2515,6 +2516,7 @@ const ROUTE_PLANS = {
       '硬拉':'6-10次 × 3组',
     },
     weekFreq: '每周 4 天（周一上肢/周二下肢/周四上肢/周五下肢）',
+    detail: '上下肢分化——周一/四练上肢，周二/五练下肢。每个肌群每周刺激 2 次，间隔至少 48 小时充分恢复。\n\n上肢日分 A/B 两套：A 侧重水平推拉（卧推+划船），B 侧重垂直推拉（俯卧撑+引体向上），给肩关节不同的刺激角度。\n\n下肢日也分 A/B：A 以深蹲为主导，B 以硬拉为主导，避免每次都是同样的下肢发力模式。\n\n适合中级道友全面提升力量和肌肉量。',
   },
   // 5×5 力量筑基法 — StrongLifts 5×5 原型
   stronglifts: {
@@ -2730,11 +2732,64 @@ function selectRoute(id){
 }
 
 function showCustomRouteEditor(){
-  var area = document.getElementById('route-selection-area');
-  if(!area) return;
   if(!appData.customRoutePlan) appData.customRoutePlan = { days:[{name:'训练日A', exercises:['深蹲','卧推']},{name:'训练日B', exercises:['硬拉','划船']}] };
-  renderCustomRouteEditor();
+  renderCustomRouteEditorModal();
 }
+
+function renderCustomRouteEditorModal(){
+  var existing = document.getElementById('custom-route-modal');
+  if(existing) existing.remove();
+  
+  var plan = appData.customRoutePlan;
+  if(!plan || !plan.days) plan = appData.customRoutePlan = { days:[{name:'训练日A', exercises:['深蹲','卧推']}] };
+  
+  var overlay = document.createElement('div');
+  overlay.id = 'custom-route-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)';
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<div style="font-size:16px;font-weight:700;color:var(--gold2)">✏️ 编辑自创路线</div>';
+  html += '<button onclick="closeCustomRouteModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button>';
+  html += '</div>';
+  
+  plan.days.forEach(function(day, di){
+    html += '<div style="background:rgba(0,0,0,.15);border-radius:8px;padding:10px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    html += '<input value="'+day.name+'" onchange="renameCustomDay('+di+',this.value)" style="background:var(--card2);border:1px solid rgba(201,169,110,.2);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-weight:600;outline:none;width:130px">';
+    html += '<button onclick="removeCustomDay('+di+')" style="background:none;border:none;color:#ff6b6b;font-size:14px;cursor:pointer">✕</button>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">';
+    day.exercises.forEach(function(exName, ei){
+      html += '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(201,169,110,.1);border:1px solid rgba(201,169,110,.2);border-radius:5px;padding:2px 6px;font-size:11px;color:var(--text)">';
+      html += exName+'<span onclick="removeFromCustomDay('+di+','+ei+')" style="cursor:pointer;color:var(--text2);margin-left:2px">✕</span></span>';
+    });
+    html += '</div>';
+    html += '<div style="display:flex;gap:4px">';
+    html += '<select id="cadd-'+di+'" style="flex:1;padding:5px;border:1px solid rgba(201,169,110,.15);border-radius:5px;background:var(--card2);color:var(--text);font-size:11px;outline:none">';
+    html += '<option value="">添加功法…</option>';
+    appData.exercises.forEach(function(ex){
+      if(day.exercises.indexOf(ex.name)===-1) html += '<option value="'+ex.name+'">'+ex.name+'</option>';
+    });
+    html += '</select>';
+    html += '<button onclick="addToCustomDay('+di+')" style="padding:5px 10px;border:none;border-radius:5px;background:rgba(201,169,110,.15);color:var(--gold);font-size:11px;cursor:pointer">＋</button>';
+    html += '</div></div>';
+  });
+  html += '<button onclick="addCustomDay()" style="width:100%;padding:8px;margin-bottom:10px;border:1px dashed rgba(201,169,110,.3);border-radius:8px;background:transparent;color:var(--gold);font-size:12px;cursor:pointer">＋ 添加训练日</button>';
+  html += '<button onclick="closeCustomRouteModal()" style="width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:14px;font-weight:700;cursor:pointer">完成编辑</button>';
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+}
+
+function closeCustomRouteModal(){
+  var el = document.getElementById('custom-route-modal');
+  if(el) el.remove();
+}
+
+// Remove old inline custom route editor functions
+function renderCustomRouteEditor(){} // no-op, replaced by modal
 
 function renderCustomRouteEditor(){
   var area = document.getElementById('route-selection-area');
