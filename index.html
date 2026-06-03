@@ -683,6 +683,19 @@ const PRESET_EXERCISES = [
   { name:'臀桥', alias:'金桥横空臀桥', emoji:'🔄', muscle:'臀', coeff:0.5 },
 ];
 
+const EXERCISE_INFO = {
+  '深蹲':{desc:'双脚与肩同宽，杠铃置于上斜方肌，下蹲至大腿平行地面或更低，保持脊柱中立。',tips:'膝关节对准脚尖方向，核心收紧，避免过度前倾。',target:'股四头肌、臀大肌、腘绳肌、核心',sci:'复合动作之王——深蹲能刺激全身肌肉生长，提高睾酮和生长激素分泌。'},
+  '卧推':{desc:'仰卧于平凳，双手略宽于肩距，杠铃下放至胸中部，推起至手臂伸直但不锁死。',tips:'肩胛骨全程收紧下沉，下放时肘部与身体呈约75°角。',target:'胸大肌、三角肌前束、肱三头肌',sci:'卧推是衡量上肢力量的核心指标，研究表明大重量低次数（3-5RM）对力量提升最优。'},
+  '硬拉':{desc:'杠铃置于脚掌中间，屈髋俯身握杠，保持背部挺直，伸膝伸髋将杠铃沿小腿提起。',tips:'启动时杠铃紧贴小腿，全程保持背部挺直，避免弓背。',target:'腘绳肌、臀大肌、竖脊肌、前臂',sci:'硬拉是最能反映全身后链力量的训练动作，对核心稳定性要求极高。'},
+  '引体向上':{desc:'正握横杆，双手略宽于肩，从完全悬垂位置拉起至下巴过杆，控制下放。',tips:'避免借力摆动，若无法完成可先用弹力带辅助或做负重下放离心训练。',target:'背阔肌、大圆肌、肱二头肌',sci:'引体向上是上肢拉力训练的金标准，对背部宽度发展至关重要。'},
+  '俯卧撑':{desc:'双手略宽于肩，身体呈直线，下放至胸部接近地面，推起至手臂伸直。',tips:'核心收紧避免塌腰，下落时肘部与身体呈45°。',target:'胸大肌、三角肌前束、肱三头肌',sci:'俯卧撑是自重训练基础动作，可通过抬高脚部增加难度，不同手间距刺激不同胸部区域。'},
+  '卷腹':{desc:'仰卧屈膝，双手轻放耳侧，用腹肌发力将肩胛骨抬离地面，感受腹部挤压。',tips:'避免用手拉脖子，下巴微收，控制节奏不借力。',target:'腹直肌',sci:'卷腹比仰卧起坐对腰椎压力更小，是核心训练的安全高效选择。'},
+  '哑铃弯举':{desc:'双手各持哑铃，掌心向前，上臂固定，用肱二头肌发力将哑铃弯举至肩前。',tips:'上臂紧贴身体不外翻，控制下放速度（离心2-3秒）。',target:'肱二头肌、肱肌',sci:'哑铃弯举比杠铃弯举活动范围更大，能更充分刺激肱二头肌全长。'},
+  '肩推':{desc:'坐姿或站姿，哑铃/杠铃推至头部上方，下放至耳朵高度。',tips:'核心收紧避免腰椎过伸，不要用下肢借力。',target:'三角肌前中束、肱三头肌',sci:'过头推举是发展肩部力量和围度的核心动作，也是上肢推力训练的重要补充。'},
+  '划船':{desc:'俯身脊柱中立，双手持杠铃/哑铃，沿身体将重量拉至下胸/腹部位置。',tips:'肩胛骨后缩发力，避免利用惯性甩动重量。',target:'背阔肌、斜方肌中下部、菱形肌、肱二头肌',sci:'划船是背部厚度训练的王牌动作，与引体向上构成完整的背部训练体系。'},
+  '臀桥':{desc:'仰卧屈膝，双脚平放地面，用臀肌发力将髋部抬升至身体呈直线。',tips:'顶峰收缩1-2秒，避免用腰部代偿发力。',target:'臀大肌、腘绳肌',sci:'臀桥是激活和强化臀肌的基础动作，对改善髋关节功能和体态有重要作用。'},
+};
+
 const NPC_NAMES = [
   '北冥散人','铁骨罗汉','九霄真人','青莲剑修','金刚护法',
   '碧落仙子','枯木尊者','烈焰拳宗','寒冰剑圣','归元道人'
@@ -1346,6 +1359,27 @@ function renderTrainingList(){
   // Render action buttons
   renderActions();
 
+  // Prominent timer banner when workout active
+  if(workoutState.active){
+    var timerEl = document.createElement('div');
+    timerEl.style.cssText = 'background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;border:1px solid '+(workoutState.isResting?'rgba(240,192,96,.4)':'rgba(201,169,110,.2)')+';'+(workoutState.isResting?'animation:glowPulse 2s infinite':'');
+    var timerHtml = '<div style="display:flex;justify-content:space-between;align-items:center">';
+    timerHtml += '<span style="font-size:13px;color:var(--text2)">⏱️ 修炼计时</span>';
+    timerHtml += '<span style="font-size:22px;font-weight:700;color:var(--gold-bright)" id="workout-timer-lg">'+formatTime(workoutState.elapsedWorkout)+'</span>';
+    timerHtml += '</div>';
+    if(workoutState.isResting){
+      timerHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid rgba(240,192,96,.15)">';
+      timerHtml += '<span style="font-size:14px;color:var(--warm);font-weight:600">🧘 组间休息</span>';
+      timerHtml += '<div style="display:flex;align-items:center;gap:10px">';
+      timerHtml += '<span style="font-size:24px;font-weight:700;color:var(--warm)" id="rest-timer-lg">'+formatTime(workoutState.elapsedRest)+'</span>';
+      timerHtml += '<button onclick="endRest()" style="padding:6px 16px;border:none;border-radius:8px;background:var(--gold);color:#1a1a2e;font-size:13px;font-weight:700;cursor:pointer">继续 →</button>';
+      timerHtml += '</div></div>';
+    }
+    timerHtml += '</div>';
+    timerEl.innerHTML = timerHtml;
+    container.appendChild(timerEl);
+  }
+
   currentTraining.forEach((item, idx)=>{
     const ex = appData.exercises[item.exerciseIdx];
     if(!ex) return;
@@ -1567,6 +1601,11 @@ function renderStatusBar(){
 var _todaySessionsVisible = false;
 function toggleTodaySessions(){
   _todaySessionsVisible = !_todaySessionsVisible;
+  if(!_todaySessionsVisible){
+    var el = document.getElementById('today-sessions-detail');
+    if(el) el.remove();
+    return;
+  }
   renderTodaySessions();
 }
 
@@ -1582,8 +1621,10 @@ function renderRouteHint(){
       var found = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
       if(!found) hasMissing = true;
     });
-    routeArea.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
-      + '<span style="color:var(--gold2)">🗺️ '+plan.dayName+'</span>'
+    var routeName = '凡骨淬体法';
+ROUTES.forEach(function(r){ if(r.id===appData.trainingRoute) routeName=r.name; });
+routeArea.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 4px">'
+      + '<span style="color:var(--gold2)">🗺️ '+routeName+' · '+plan.dayName+'</span>'
       + ' · <span>'+plan.plan.weekFreq+'</span>'
       + (hasMissing ? '<button onclick="addRoutePlanExercises()" style="margin-left:auto;padding:4px 10px;border:none;border-radius:6px;background:rgba(201,169,110,.15);color:var(--gold);font-size:11px;cursor:pointer">＋ 一键添加</button>' : '')
       + '</div>';
@@ -1608,6 +1649,11 @@ function startWorkout(){
       workoutState.elapsedRest = Math.floor((Date.now() - workoutState.restStartTime) / 1000);
     }
     renderStatusBar();
+    // Update prominent timer if visible
+    var wt = document.getElementById('workout-timer-lg');
+    if(wt) wt.textContent = formatTime(workoutState.elapsedWorkout);
+    var rt = document.getElementById('rest-timer-lg');
+    if(rt) rt.textContent = formatTime(workoutState.elapsedRest);
   }, 1000);
   renderTrainingList();
   showToast('⚔️ 修炼开始！道友请专注每一组动作');
@@ -1952,6 +1998,7 @@ function closePR(){
 // ===================================================================
 // SKILLS & ROUTES
 // ===================================================================
+var _skillExpanded = -1;
 function renderSkills(){
   const container = document.getElementById('skills-exercise-list');
   if(!container) return;
@@ -1960,10 +2007,10 @@ function renderSkills(){
   exercises.forEach(function(ex,i){
     const gradeColors = { '黄阶':'','玄阶':'#6fa8dc','地阶':'#93c47d','天阶':'#ffd700','圣阶':'#c27ba0','神阶':'#ff6b6b' };
     const gColor = gradeColors[ex.grade] || '';
-    html += '<div class="skill-card">';
+    html += '<div class="skill-card" onclick="toggleSkillDetail('+i+')" style="cursor:pointer">';
     html += '<div class="sc-header">';
     html += '<div class="sc-name">'+ex.emoji+' '+ex.alias+' <span class="alias">('+ex.name+')</span></div>';
-    html += '<div style="font-size:20px;" style="color:'+gColor+'">'+ex.grade+'</div>';
+    html += '<div style="font-size:16px;color:'+gColor+'">'+ex.grade+'</div>';
     html += '</div>';
     html += '<div class="sc-tags">';
     html += '<span class="skill-tag muscle">'+ex.muscle+'</span>';
@@ -1974,6 +2021,10 @@ function renderSkills(){
     html += '<span>🏋️ 巅峰 '+ex.maxWeight+'kg</span>';
     html += '<span>🔥 容量 '+ex.totalVolume+'</span>';
     html += '</div>';
+    // Expanded detail
+    if(_skillExpanded === i){
+      html += renderSkillDetail(ex, i);
+    }
     html += '</div>';
   });
   container.innerHTML = html;
@@ -1988,6 +2039,61 @@ function renderSkills(){
       + '<button onclick="createCustomExercise()">📜 创立法诀</button>'
       + '</div>';
   }
+}
+
+function toggleSkillDetail(idx){
+  if(_skillExpanded === idx){
+    _skillExpanded = -1;
+  } else {
+    _skillExpanded = idx;
+  }
+  renderSkills();
+}
+
+function renderSkillDetail(ex, exGlobalIdx){
+  var info = EXERCISE_INFO[ex.name] || {desc:'暂无详细描述',tips:'',target:'',sci:''};
+  // Find training history
+  var history = [];
+  appData.sessions.forEach(function(s){
+    s.exercises.forEach(function(item){
+      if(item.exerciseIdx === exGlobalIdx || (appData.exercises[item.exerciseIdx] && appData.exercises[item.exerciseIdx].name === ex.name)){
+        item.sets.forEach(function(set){
+          history.push({date:s.date, reps:set.reps, weight:set.weight});
+        });
+      }
+    });
+  });
+  // Get latest 5 entries
+  var recent = history.slice(-5).reverse();
+  
+  var dhtml = '<div style="border-top:1px solid rgba(201,169,110,.1);padding:12px 0 0;margin-top:10px">';
+  // Info section
+  dhtml += '<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px">';
+  dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px">📖 功法要诀</div>';
+  dhtml += '<div>'+info.desc+'</div>';
+  dhtml += '</div>';
+  if(info.tips){
+    dhtml += '<div style="font-size:12px;color:var(--warm);margin-bottom:6px">💡 '+info.tips+'</div>';
+  }
+  dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">🎯 目标肌群：'+info.target+'</div>';
+  dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-style:italic">📚 '+info.sci+'</div>';
+  // PR history
+  if(ex.prCount > 0){
+    dhtml += '<div style="font-size:12px;color:var(--gold-bright);margin-bottom:6px">🌟 共突破 '+ex.prCount+' 次个人纪录</div>';
+  }
+  // Recent training history
+  if(recent.length > 0){
+    dhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px">📋 最近训练记录</div>';
+    recent.forEach(function(r){
+      dhtml += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)">';
+      dhtml += '<span>'+r.date.slice(5)+'</span>';
+      dhtml += '<span>'+(r.weight||'自重')+'kg × '+r.reps+' 次</span></div>';
+    });
+  } else {
+    dhtml += '<div style="font-size:12px;color:var(--text2);margin-top:4px">暂无训练记录，开始修炼后将在此显示详情</div>';
+  }
+  dhtml += '</div>';
+  return dhtml;
 }
 
 function createCustomExercise(){
