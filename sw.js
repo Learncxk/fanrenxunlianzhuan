@@ -1,8 +1,12 @@
 const CACHE_NAME = 'mortal-training-v1';
+const BASE = '/fanrenxunlianzhuan';
 
 const PRECACHE_URLS = [
-  '/index.html',
-  '/manifest.json'
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/icon-192.png',
+  BASE + '/icon-512.png',
 ];
 
 // Install: precache core resources
@@ -10,7 +14,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(PRECACHE_URLS).catch(err => {
-        console.warn('[SW] 部分资源预缓存失败（不影响核心功能）:', err);
+        console.warn('[SW] 部分资源预缓存失败:', err);
       });
     })
   );
@@ -29,9 +33,12 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: cache-first strategy
+// Fetch: cache-first, fallback to network
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  
+  // Only handle requests within our scope
+  if (!event.request.url.includes(BASE)) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
