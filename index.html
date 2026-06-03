@@ -725,9 +725,17 @@ const EXERCISE_INFO = {
   '臀桥':{desc:'仰卧屈膝，双脚平放地面，用臀肌发力将髋部抬升至身体呈直线。',tips:'顶峰收缩1-2秒，避免用腰部代偿发力。',target:'臀大肌、腘绳肌',sci:'臀桥是激活和强化臀肌的基础动作，对改善髋关节功能和体态有重要作用。'},
 };
 
-const NPC_NAMES = [
-  '北冥散人','铁骨罗汉','九霄真人','青莲剑修','金刚护法',
-  '碧落仙子','枯木尊者','烈焰拳宗','寒冰剑圣','归元道人'
+const NPC_DATA = [
+  { name:'北冥散人', title:'北海散修', desc:'常年独行于北冥之海，以惊涛骇浪锤炼肉身。沉默寡言，但每言必中。', quote:'「北海无边，大道无涯。你我皆在途中，何谈先后？」' },
+  { name:'铁骨罗汉', title:'金刚寺首座', desc:'自幼以铜人阵淬体，浑身筋骨坚如金石。不喜言语，但一拳一脚皆是千锤百炼。', quote:'「筋骨不磨不成器。少说话，多练功。」' },
+  { name:'九霄真人', title:'云霄阁长老', desc:'出身名门正派，天资卓绝。举手投足间带着一丝高傲，但实力确实令人信服。', quote:'「天赋是起点，不是终点——这个道理，平庸之辈永远不会懂。」' },
+  { name:'青莲剑修', title:'剑渊传人', desc:'一柄青莲剑走天涯，剑法如行云流水。气质清冷，但对后辈偶尔会露出难得的温和。', quote:'「剑要练，心更要练。你的剑心，可曾动摇过？」' },
+  { name:'金刚护法', title:'护法堂主', desc:'身材魁梧如铁塔，性格却出奇温和。最喜欢指点后辈修炼，见人进步比自己突破还高兴。', quote:'「好！这一式有模有样！再来一组，老夫给你看着！」' },
+  { name:'碧落仙子', title:'碧落宫主', desc:'容貌清丽，修为深不可测。掌管碧落宫，门下弟子众多，以柔克刚之道已臻化境。', quote:'「修炼如煮茶，火候太急则苦，太慢则淡。找到自己的节奏。」' },
+  { name:'枯木尊者', title:'枯木崖隐士', desc:'年过古稀，须发皆白。曾是大乾王朝第一高手，后隐退山林，以枯木为伴。看似风烛残年，实则深不可测。', quote:'「呵呵……老夫年轻时也像你这么拼。好，有当年老夫的风范。」' },
+  { name:'烈焰拳宗', title:'烈阳谷主', desc:'脾气火爆，性格直爽。一手烈焰拳法霸道无比。虽已年过半百，豪气不输少年。', quote:'「修炼就要拿出气势来！扭扭捏捏的练什么功？燃起来！」' },
+  { name:'寒冰剑圣', title:'冰渊剑主', desc:'常年居于极北冰渊，性情冷峻如霜。剑出必见血——但在修炼场上，他反而最懂循序渐进之道。', quote:'「……不错。继续。不要停。」' },
+  { name:'归元道人', title:'归元宗宗主', desc:'道法自然，返璞归真。平时看起来就像个普通的田间老人，但一开口便是至理名言。', quote:'「大道至简。你每天多练一组，比求仙问佛管用得多。」' },
 ];
 
 const QUOTES = [
@@ -758,7 +766,7 @@ const QUOTES = [
   { text:'「道友休整数日，灵力已沉淀完毕，今日正是出关良机」', type:'return' },
 ];
 
-const NPC_QI_MULTIPLIERS = [0.3, 0.5, 0.7, 0.9, 1.1, 0.4, 0.6, 0.8, 1.0, 1.2];
+const NPC_QI_MULTIPLIERS = [0.85, 0.90, 0.95, 1.00, 1.05, 0.88, 0.92, 0.98, 1.02, 1.10];
 
 const BT_NARRATIVES = {
   '凡人之躯':['你的经脉在微弱震颤……','每一滴汗水都是灵力的种子','凡人之躯，亦有不凡之心'],
@@ -875,9 +883,9 @@ function getDefaultData(){
     tribulations:{ small:[], large:[] },
     secretRealm:{ active:null, history:[], lastAppearance:null, weekCount:0, weekStart:null },
     achievements:[],
-    npcLeaderboard:NPC_NAMES.map((name,i)=>({
-      name, qi:0, title:REALMS[0].name+'·初期'
-    })),
+    npcLeaderboard:NPC_DATA.map(function(npc,i){
+      return { name:npc.name, npcTitle:npc.title, desc:npc.desc, quote:npc.quote, qi:0, title:REALMS[0].name+'·初期' };
+    }),
     trainingRoute:null,
     customExercises:[],
     muscleHistory:{}, // {date: [muscleGroup,...]}
@@ -2911,7 +2919,7 @@ function renderAtlas(){
   html += '<h3>🏆 战力天榜</h3>';
   // Combine NPC + user
   var allEntries = appData.npcLeaderboard.map(function(npc, i){
-    return { name:npc.name, qi:npc.qi, title:npc.title, isUser:false };
+    return { idx:i, name:npc.name, qi:npc.qi, title:npc.title, npcTitle:npc.npcTitle, desc:npc.desc, quote:npc.quote, isUser:false };
   });
   allEntries.push({ name:'我（'+appData.user.talent+'）', qi:appData.totalQi, title:REALMS[realmInfo.idx].name+'·'+STAGES[realmInfo.stage], isUser:true });
   allEntries.sort(function(a,b){ return b.qi - a.qi; });
@@ -2923,15 +2931,12 @@ function renderAtlas(){
     else if(i === 2) rankClass = 'bronze';
     if(entry.isUser) rankClass = 'self';
     
-    var rankDisplay = (i+1);
-    var aboveName = '';
-    if(i > 0 && entry.isUser){
-      aboveName = allEntries[i-1].name;
-    }
+    var htmlClick = entry.isUser ? '' : ' onclick="showNPCDetail('+entry.idx+')" style="cursor:pointer"';
     
-    html += '<div class="lb-entry">';
-    html += '<div class="lb-rank '+rankClass+'">'+rankDisplay+'</div>';
+    html += '<div class="lb-entry"'+htmlClick+'>';
+    html += '<div class="lb-rank '+rankClass+'">'+(i+1)+'</div>';
     html += '<div class="lb-name '+(entry.isUser?'self':'')+'">'+entry.name+'</div>';
+    if(!entry.isUser) html += '<div class="lb-name" style="font-size:10px;color:var(--text2)">'+entry.npcTitle+'</div>';
     html += '<div class="lb-realm">'+entry.title+'</div>';
     html += '<div class="lb-qi">'+entry.qi+'</div>';
     html += '</div>';
@@ -2959,6 +2964,46 @@ function renderAtlas(){
   html += '</div>';
   
   container.innerHTML = html;
+}
+
+function showNPCDetail(npcIdx){
+  var npc = appData.npcLeaderboard[npcIdx];
+  if(!npc) return;
+  var existing = document.getElementById('npc-detail-overlay');
+  if(existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'npc-detail-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
+  var r = getRealmFromQi(npc.qi);
+  var realmStr = REALMS[r.idx].name+'·'+STAGES[r.stage];
+  var behind = appData.totalQi > npc.qi ? appData.totalQi - npc.qi : 0;
+  var ahead = npc.qi > appData.totalQi ? npc.qi - appData.totalQi : 0;
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:360px;width:100%;animation:breakthrough .3s ease">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<div style="font-size:16px;font-weight:700;color:var(--gold2);font-family:\'Noto Serif SC\',\'Songti SC\',serif">'+(npc.npcTitle||'散修')+'</div>';
+  html += '<button onclick="this.closest(\'#npc-detail-overlay\').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button>';
+  html += '</div>';
+  html += '<div style="text-align:center;margin-bottom:12px">';
+  html += '<div style="font-size:20px;font-weight:700;color:var(--gold)">'+npc.name+'</div>';
+  html += '<div style="font-size:14px;color:var(--gold2);margin-top:2px">'+realmStr+'</div>';
+  html += '<div style="font-size:13px;color:var(--gold-bright);margin-top:4px">'+npc.qi+' 灵力</div>';
+  html += '</div>';
+  html += '<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px;padding:10px;background:rgba(0,0,0,.15);border-radius:8px">'+npc.desc+'</div>';
+  if(npc.quote){
+    html += '<div style="font-size:13px;color:var(--gold);font-style:italic;text-align:center;margin-bottom:12px;padding:8px;border-left:2px solid var(--gold)">'+npc.quote+'</div>';
+  }
+  // Comparison
+  if(behind > 0){
+    html += '<div style="font-size:12px;color:var(--success);text-align:center;padding:8px;background:rgba(92,184,92,.06);border-radius:8px">';
+    html += '你已领先此道友 <span style="font-weight:700;font-size:14px">'+behind+'</span> 灵力</div>';
+  } else if(ahead > 0){
+    html += '<div style="font-size:12px;color:var(--warm);text-align:center;padding:8px;background:rgba(240,192,96,.06);border-radius:8px">';
+    html += '距此道友还差 <span style="font-weight:700;font-size:14px">'+ahead+'</span> 灵力，继续努力！</div>';
+  }
+  html += '</div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 }
 
 function updateWeight(){
