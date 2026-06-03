@@ -2326,6 +2326,15 @@ function checkAchievements(){
 // INIT ON DOM READY
 // ===================================================================
 document.addEventListener('DOMContentLoaded', init);
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js', { scope: '/fanrenxunlianzhuan/' }).catch(function(err) {
+      console.warn('[SW] 注册失败:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
