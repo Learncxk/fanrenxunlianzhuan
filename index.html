@@ -670,6 +670,22 @@ const REALMS = [
 
 const STAGES = ['初期','中期','后期','圆满'];
 
+// 法器系统
+const EQUIPMENT_TYPES = [
+  { id:'barbell', name:'杠铃', icon:'🏋️', coeff:1.0, desc:'自由重量·全身稳定参与' },
+  { id:'dumbbell', name:'哑铃', icon:'💪', coeff:1.0, desc:'自由重量·单侧刺激更充分' },
+  { id:'bodyweight', name:'自重', icon:'🧘', coeff:1.0, desc:'自重训练·随时可练' },
+  { id:'smith', name:'史密斯机', icon:'🏗️', coeff:0.9, desc:'固定轨迹·稳定肌群参与减少' },
+  { id:'machine', name:'固定器械', icon:'⚙️', coeff:0.9, desc:'轨迹固定·适合孤立训练' },
+  { id:'custom', name:'自定义', icon:'🔧', coeff:1.0, desc:'自行命名法器' },
+];
+
+const DEFAULT_EQUIPMENT = {
+  '深蹲':'barbell', '卧推':'barbell', '硬拉':'barbell',
+  '引体向上':'bodyweight', '俯卧撑':'bodyweight', '卷腹':'bodyweight',
+  '哑铃弯举':'dumbbell', '肩推':'dumbbell', '划船':'barbell', '臀桥':'bodyweight',
+};
+
 const PRESET_EXERCISES = [
   { name:'深蹲', alias:'金刚伏魔深蹲', emoji:'🦵', muscle:'腿', coeff:1.2 },
   { name:'卧推', alias:'推山填海卧推', emoji:'🏋️', muscle:'胸', coeff:1.1 },
@@ -1406,10 +1422,17 @@ function renderTrainingList(){
       setsHtml += '</div>';
     });
 
+    var equipId = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
+    var eqIcon = '🏋️', eqName = '杠铃';
+    EQUIPMENT_TYPES.forEach(function(et){ if(et.id===equipId){ eqIcon=et.icon; eqName=et.name; } });
+    
     card.innerHTML = `
       <div class="ec-header">
         <div class="ec-name"><span class="emoji">${ex.emoji}</span>${ex.alias}</div>
-        <span class="ec-muscle">${ex.muscle}</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="ec-muscle" style="font-size:11px;cursor:pointer" onclick="cycleEquipment(${idx})" title="点击切换法器">${eqIcon}${eqName}</span>
+          <span class="ec-muscle">${ex.muscle}</span>
+        </div>
         <button class="btn-remove-exercise" onclick="removeExerciseFromTraining(${idx})">✕</button>
       </div>
       <div class="ec-sets">${setsHtml}</div>
@@ -1450,7 +1473,8 @@ function addExerciseToTraining(){
     }
   }
 
-  currentTraining.push({ exerciseIdx:val, sets:[{reps:10, weight:20}] });
+  var eq = DEFAULT_EQUIPMENT[appData.exercises[val].name] || 'barbell';
+  currentTraining.push({ exerciseIdx:val, sets:[{reps:10, weight:20, completed:false}], equipment:eq });
   renderTraining();
   updateTrainingQiDisplay();
 }
@@ -1492,12 +1516,29 @@ function updateSet(el){
 function calcSetQi(exItem){
   const ex = appData.exercises[exItem.exerciseIdx];
   if(!ex) return 0;
+  // Get equipment coefficient
+  var eqCoef = 1.0;
+  EQUIPMENT_TYPES.forEach(function(et){ if(et.id === (exItem.equipment || DEFAULT_EQUIPMENT[ex.name])) eqCoef = et.coeff; });
   let total = 0;
-  exItem.sets.forEach(set=>{
-    const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05;
+  exItem.sets.forEach(function(set){
+    const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05 * eqCoef;
     total += setQi;
   });
   return Math.round(total);
+}
+
+function cycleEquipment(exIdx){
+  var item = currentTraining[exIdx];
+  if(!item) return;
+  var ex = appData.exercises[item.exerciseIdx];
+  if(!ex) return;
+  var current = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
+  var ids = EQUIPMENT_TYPES.map(function(et){ return et.id; });
+  var pos = ids.indexOf(current);
+  var next = ids[(pos + 1) % ids.length];
+  item.equipment = next;
+  renderTrainingList();
+  updateTrainingQiDisplay();
 }
 
 function updateTrainingQiDisplay(){
@@ -1752,20 +1793,30 @@ function endTraining(){
   currentTraining.forEach(item=>{
     const ex = appData.exercises[item.exerciseIdx];
     if(!ex) return;
-    item.sets.forEach(set=>{
-      const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05;
+    var eqId = item.equipment || DEFAULT_EQUIPMENT[ex.name] || 'barbell';
+    var eqCoef = 1.0;
+    EQUIPMENT_TYPES.forEach(function(et){ if(et.id === eqId) eqCoef = et.coeff; });
+    // Ensure prByEquipment exists
+    if(!ex.prByEquipment) ex.prByEquipment = {};
+    if(!ex.prByEquipment[eqId]) ex.prByEquipment[eqId] = { maxWeight:0, maxReps:0, maxVolume:0 };
+    var eqPR = ex.prByEquipment[eqId];
+
+    item.sets.forEach(function(set){
+      const setQi = (set.weight || 0) * (set.reps || 0) * ex.coeff * 0.05 * eqCoef;
       totalQi += setQi;
 
-      // Check PR
-      if(set.weight > ex.maxWeight){
-        ex.maxWeight = set.weight;
+      // Check PR per equipment
+      if(set.weight > eqPR.maxWeight){
+        eqPR.maxWeight = set.weight;
+        if(set.weight > ex.maxWeight) ex.maxWeight = set.weight;
         hasPR = true;
-        prText += ex.alias + ' 重量突破 ' + set.weight + 'kg！';
+        prText += ex.alias + ' [' + eqId + '] 重量突破 ' + set.weight + 'kg！';
       }
-      if(set.reps > ex.maxReps){
-        ex.maxReps = set.reps;
+      if(set.reps > eqPR.maxReps){
+        eqPR.maxReps = set.reps;
+        if(set.reps > ex.maxReps) ex.maxReps = set.reps;
         if(!hasPR) prText = '';
-        prText += (hasPR ? '' : '') + ex.alias + ' 次数突破 ' + set.reps + ' 次！';
+        prText += ex.alias + ' 次数突破 ' + set.reps + ' 次！';
         hasPR = true;
       }
       ex.totalSets++;
@@ -1809,10 +1860,14 @@ function endTraining(){
   // Save session
   const session = {
     date: today,
-    exercises: currentTraining.map(item=>({
-      exerciseIdx: item.exerciseIdx,
-      sets: item.sets.map(s=>({reps:s.reps, weight:s.weight}))
-    })),
+    exercises: currentTraining.map(function(item){
+      var ex = appData.exercises[item.exerciseIdx];
+      return {
+        exerciseIdx: item.exerciseIdx,
+        equipment: item.equipment || DEFAULT_EQUIPMENT[ex ? ex.name : ''] || 'barbell',
+        sets: item.sets.map(function(s){ return {reps:s.reps, weight:s.weight}; })
+      };
+    }),
     totalQi: totalQi,
     rawQi: rawQi,
     conBonus: conBonus,
@@ -2242,7 +2297,8 @@ function addRoutePlanExercises(){
     if(exIdx === -1) return;
     var exists = currentTraining.some(function(item){ return item.exerciseIdx === exIdx; });
     if(!exists){
-      currentTraining.push({ exerciseIdx: exIdx, sets: [{ reps: 10, weight: 0 }] });
+      var eq = DEFAULT_EQUIPMENT[exName] || 'barbell';
+      currentTraining.push({ exerciseIdx: exIdx, sets: [{ reps: 10, weight: 0, completed:false }], equipment: eq });
     }
   });
   renderTrainingList();
