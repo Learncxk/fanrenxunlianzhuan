@@ -907,6 +907,7 @@ function getDefaultData(){
       return { name:npc.name, npcTitle:npc.title, desc:npc.desc, quote:npc.quote, qi:npc.qi || 0, title:REALMS[r.idx].name+'·'+STAGES[r.stage] };
     }),
     trainingRoute:null,
+    customRoutePlan:{ days:[{name:'训练日A', exercises:['深蹲','卧推']},{name:'训练日B', exercises:['硬拉','划船']}] },
     customExercises:[],
     muscleHistory:{}, // {date: [muscleGroup,...]}
     lastMuscleGroups:[],
@@ -2463,12 +2464,10 @@ const ROUTES = [
 
 // 科学训练计划数据
 const ROUTE_PLANS = {
-  // 凡骨淬体法 — 全身训练 3 天/周 (A/B/C 轮换)
+  // 凡骨淬体法 — 全身训练 3 天/周 (A/B 交替)
   beginner: {
     days: ['全身A','全身B','全身A'],
-    getDay: function(weekIndex) {
-      return this.days[weekIndex % 3];
-    },
+    getDay: function(weekIndex) { return this.days[weekIndex % 3]; },
     exercises: {
       '全身A': ['深蹲','卧推','划船','卷腹'],
       '全身B': ['硬拉','肩推','引体向上','臀桥'],
@@ -2479,42 +2478,39 @@ const ROUTE_PLANS = {
     },
     weekFreq: '每周 3 天（如周一、三、五）',
   },
-  // 三脉同修法 — PPL 4-5 天/周
+  // 三脉同修法 — 严格推/拉/腿三分化 (PPL)
   ppl: {
     days: ['推日','拉日','腿日'],
-    getDay: function(weekIndex) {
-      return this.days[weekIndex % 3];
-    },
+    getDay: function(weekIndex) { return this.days[weekIndex % 3]; },
     exercises: {
-      '推日': ['卧推','肩推','俯卧撑','哑铃弯举'],
-      '拉日': ['硬拉','引体向上','划船','臀桥'],
-      '腿日': ['深蹲','卷腹','臀桥'],
+      '推日': ['卧推','肩推','俯卧撑'],            // 胸+肩+三头 = 全部推类
+      '拉日': ['引体向上','划船','哑铃弯举'],       // 背+二头 = 全部拉类
+      '腿日': ['深蹲','硬拉','臀桥'],               // 下肢主导
     },
     repRanges: {
-      '卧推':'8-12次 × 4组','肩推':'10-12次 × 3组','俯卧撑':'力竭 × 3组','哑铃弯举':'10-12次 × 3组',
-      '硬拉':'6-10次 × 3组','引体向上':'力竭 × 3组','划船':'10-12次 × 4组','臀桥':'12-15次 × 3组',
-      '深蹲':'8-12次 × 4组','卷腹':'15-20次 × 3组',
+      '卧推':'8-12次 × 4组','肩推':'10-12次 × 3组','俯卧撑':'力竭 × 3组',
+      '引体向上':'力竭 × 3组','划船':'10-12次 × 4组','哑铃弯举':'10-12次 × 3组',
+      '深蹲':'8-12次 × 4组','硬拉':'6-10次 × 3组','臀桥':'12-15次 × 3组',
     },
-    weekFreq: '每周 4-5 天（如推/拉/腿/推/拉）',
+    weekFreq: '每周 4-5 天（推/拉/腿/推/拉）',
   },
   // 五行轮转法 — 上下肢分化 4 天/周
   upperlower: {
     days: ['上肢A','下肢A','上肢B','下肢B'],
-    getDay: function(weekIndex) {
-      return this.days[weekIndex % 4];
-    },
+    getDay: function(weekIndex) { return this.days[weekIndex % 4]; },
     exercises: {
-      '上肢A': ['卧推','划船','肩推','引体向上'],
-      '下肢A': ['深蹲','硬拉','臀桥'],
-      '上肢B': ['俯卧撑','引体向上','哑铃弯举','肩推'],
-      '下肢B': ['深蹲','硬拉','卷腹'],
+      '上肢A': ['卧推','划船','肩推'],
+      '下肢A': ['深蹲','臀桥','卷腹'],
+      '上肢B': ['俯卧撑','引体向上','哑铃弯举'],
+      '下肢B': ['硬拉','深蹲','卷腹'],
     },
     repRanges: {
-      '卧推':'8-12次 × 4组','划船':'10-12次 × 4组','肩推':'8-12次 × 3组','引体向上':'力竭 × 3组',
-      '深蹲':'8-12次 × 4组','硬拉':'6-10次 × 3组','臀桥':'12-15次 × 3组',
-      '俯卧撑':'力竭 × 3组','哑铃弯举':'10-12次 × 3组','卷腹':'15-20次 × 3组',
+      '卧推':'8-12次 × 4组','划船':'10-12次 × 4组','肩推':'8-12次 × 3组',
+      '深蹲':'8-12次 × 4组','臀桥':'12-15次 × 3组','卷腹':'15-20次 × 3组',
+      '俯卧撑':'力竭 × 3组','引体向上':'力竭 × 3组','哑铃弯举':'10-12次 × 3组',
+      '硬拉':'6-10次 × 3组',
     },
-    weekFreq: '每周 4 天（如周一上肢/周二下肢/周四上肢/周五下肢）',
+    weekFreq: '每周 4 天（周一上肢/周二下肢/周四上肢/周五下肢）',
   },
   custom: null,
 };
@@ -2522,9 +2518,26 @@ const ROUTE_PLANS = {
 function getTodayPlan(){
   const routeId = appData.trainingRoute;
   if(!routeId || routeId === 'none') return null;
+  
+  // Custom route
+  if(routeId === 'custom'){
+    if(appData.customRoutePlan && appData.customRoutePlan.days && appData.customRoutePlan.days.length > 0){
+      var days = appData.customRoutePlan.days;
+      var startDate = appData.sessions.length > 0 ? appData.sessions[0].date : getTodayStr();
+      var dayIdx = daysBetween(startDate, getTodayStr()) % days.length;
+      var day = days[dayIdx];
+      return {
+        plan: { weekFreq: '自定义·自由安排' },
+        dayName: day.name || '训练日',
+        exercises: day.exercises || [],
+      };
+    }
+    return null;
+  }
+  
+  // Preset routes
   const plan = ROUTE_PLANS[routeId];
   if(!plan) return null;
-  // Calculate week index from first session date or use today
   const startDate = appData.sessions.length > 0 ? appData.sessions[0].date : getTodayStr();
   const daysSinceStart = daysBetween(startDate, getTodayStr());
   const dayName = plan.getDay(daysSinceStart);
@@ -2581,6 +2594,100 @@ function selectRoute(id){
   if(route){
     showToast('🗺️ 已切换至「' + route.name + '」—— 洞府页面可查看今日建议');
   }
+  // If custom route, show editor
+  if(id === 'custom'){
+    showCustomRouteEditor();
+  }
+}
+
+function showCustomRouteEditor(){
+  var area = document.getElementById('route-selection-area');
+  if(!area) return;
+  if(!appData.customRoutePlan) appData.customRoutePlan = { days:[{name:'训练日A', exercises:['深蹲','卧推']},{name:'训练日B', exercises:['硬拉','划船']}] };
+  renderCustomRouteEditor();
+}
+
+function renderCustomRouteEditor(){
+  var area = document.getElementById('route-selection-area');
+  if(!area) return;
+  var plan = appData.customRoutePlan;
+  if(!plan || !plan.days) plan = appData.customRoutePlan = { days:[{name:'训练日A', exercises:['深蹲','卧推']}] };
+  
+  var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:16px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html += '<h3 style="font-size:16px;color:var(--gold2);margin:0">✏️ 编辑自创功法路线</h3>';
+  html += '<button onclick="toggleRouteSelect()" style="background:none;border:1px solid rgba(201,169,110,.3);color:var(--gold);padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer">收起</button>';
+  html += '</div>';
+  
+  plan.days.forEach(function(day, di){
+    html += '<div style="background:rgba(0,0,0,.15);border-radius:8px;padding:12px;margin-bottom:10px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<input value="'+day.name+'" onchange="renameCustomDay('+di+',this.value)" style="background:var(--card2);border:1px solid rgba(201,169,110,.2);border-radius:6px;padding:4px 8px;color:var(--text);font-size:13px;font-weight:600;outline:none;width:140px">';
+    html += '<button onclick="removeCustomDay('+di+')" style="background:none;border:none;color:#ff6b6b;font-size:16px;cursor:pointer">✕</button>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
+    day.exercises.forEach(function(exName, ei){
+      html += '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(201,169,110,.1);border:1px solid rgba(201,169,110,.2);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--text)">';
+      html += exName;
+      html += '<span onclick="removeFromCustomDay('+di+','+ei+')" style="cursor:pointer;color:var(--text2);margin-left:2px">✕</span></span>';
+    });
+    html += '</div>';
+    // Add exercise dropdown for this day
+    html += '<div style="display:flex;gap:4px">';
+    html += '<select id="custom-add-ex-'+di+'" style="flex:1;padding:6px;border:1px solid rgba(201,169,110,.15);border-radius:6px;background:var(--card2);color:var(--text);font-size:12px;outline:none">';
+    html += '<option value="">添加功法…</option>';
+    appData.exercises.forEach(function(ex){
+      if(day.exercises.indexOf(ex.name) === -1){
+        html += '<option value="'+ex.name+'">'+ex.emoji+' '+ex.alias+'</option>';
+      }
+    });
+    html += '</select>';
+    html += '<button onclick="addToCustomDay('+di+')" style="padding:6px 12px;border:none;border-radius:6px;background:rgba(201,169,110,.15);color:var(--gold);font-size:12px;cursor:pointer">＋</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  
+  html += '<button onclick="addCustomDay()" style="width:100%;padding:10px;border:1px dashed rgba(201,169,110,.3);border-radius:8px;background:transparent;color:var(--gold);font-size:13px;cursor:pointer;min-height:44px">＋ 添加训练日</button>';
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function renameCustomDay(di, name){
+  if(!appData.customRoutePlan || !appData.customRoutePlan.days[di]) return;
+  appData.customRoutePlan.days[di].name = name || '训练日';
+  saveData();
+}
+
+function removeCustomDay(di){
+  if(!appData.customRoutePlan || appData.customRoutePlan.days.length <= 1){ alert('至少保留一个训练日'); return; }
+  appData.customRoutePlan.days.splice(di, 1);
+  saveData();
+  renderCustomRouteEditor();
+}
+
+function addCustomDay(){
+  if(!appData.customRoutePlan) appData.customRoutePlan = { days:[] };
+  appData.customRoutePlan.days.push({ name:'训练日' + (appData.customRoutePlan.days.length+1), exercises:['深蹲'] });
+  saveData();
+  renderCustomRouteEditor();
+}
+
+function addToCustomDay(di){
+  var sel = document.getElementById('custom-add-ex-'+di);
+  if(!sel || !sel.value) return;
+  var exName = sel.value;
+  if(!appData.customRoutePlan || !appData.customRoutePlan.days[di]) return;
+  appData.customRoutePlan.days[di].exercises.push(exName);
+  sel.value = '';
+  saveData();
+  renderCustomRouteEditor();
+}
+
+function removeFromCustomDay(di, ei){
+  if(!appData.customRoutePlan || !appData.customRoutePlan.days[di]) return;
+  appData.customRoutePlan.days[di].exercises.splice(ei, 1);
+  saveData();
+  renderCustomRouteEditor();
 }
 
 // ===================================================================
