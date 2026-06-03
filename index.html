@@ -2597,8 +2597,8 @@ function getTodayPlan(){
   if(routeId === 'custom'){
     if(appData.customRoutePlan && appData.customRoutePlan.days && appData.customRoutePlan.days.length > 0){
       var days = appData.customRoutePlan.days;
-      var startDate = appData.sessions.length > 0 ? appData.sessions[0].date : getTodayStr();
-      var dayIdx = daysBetween(startDate, getTodayStr()) % days.length;
+      var customStart = appData.sessions.length > 0 ? appData.sessions[0].date : getTodayStr();
+      var dayIdx = daysBetween(customStart, getTodayStr()) % days.length;
       var day = days[dayIdx];
       return {
         plan: { weekFreq: '自定义·自由安排' },
