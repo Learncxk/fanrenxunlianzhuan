@@ -690,6 +690,20 @@ const DEFAULT_EQUIPMENT = {
   '哑铃弯举':'dumbbell', '肩推':'dumbbell', '划船':'barbell', '臀桥':'bodyweight',
 };
 
+// 功法-法器兼容性：每个功法只能使用科学合理的法器
+const EQUIPMENT_COMPAT = {
+  '深蹲': ['barbell','dumbbell','kettlebell','bodyweight','smith','machine','band','custom'],
+  '卧推': ['barbell','dumbbell','ezbar','smith','machine','cable','band','custom'],
+  '硬拉': ['barbell','dumbbell','kettlebell','smith','machine','band','custom'],
+  '引体向上': ['bodyweight','band','machine','custom'],
+  '俯卧撑': ['bodyweight','dumbbell','kettlebell','band','cable','machine','custom'],
+  '卷腹': ['bodyweight','cable','band','machine','custom'],
+  '哑铃弯举': ['dumbbell','ezbar','cable','machine','band','custom'],
+  '肩推': ['barbell','dumbbell','kettlebell','smith','cable','machine','band','custom'],
+  '划船': ['barbell','dumbbell','ezbar','cable','machine','band','custom'],
+  '臀桥': ['bodyweight','barbell','dumbbell','band','machine','custom'],
+};
+
 const PRESET_EXERCISES = [
   { name:'深蹲', alias:'金刚伏魔深蹲', emoji:'🦵', muscle:'腿', coeff:1.2 },
   { name:'卧推', alias:'推山填海卧推', emoji:'🏋️', muscle:'胸', coeff:1.1 },
@@ -1535,29 +1549,77 @@ function calcSetQi(exItem){
 function showEquipmentPicker(exIdx){
   var item = currentTraining[exIdx];
   if(!item) return;
+  var ex = appData.exercises[item.exerciseIdx];
+  if(!ex) return;
   var existing = document.getElementById('eq-picker-overlay');
   if(existing) existing.remove();
   
+  // Get compatible equipment for this exercise
+  var compat = EQUIPMENT_COMPAT[ex.name];
+  var filtered = compat ? EQUIPMENT_TYPES.filter(function(et){ return compat.indexOf(et.id) !== -1; }) : EQUIPMENT_TYPES;
+  
   var overlay = document.createElement('div');
   overlay.id = 'eq-picker-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
   
   var html = '<div style="background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:20px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;animation:breakthrough .3s ease">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:16px;font-weight:600;color:var(--gold2)">🔧 选择法器</div><button onclick="closeEquipmentPicker()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button></div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  EQUIPMENT_TYPES.forEach(function(et){
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:15px;font-weight:600;color:var(--gold2)">🔧 '+ex.emoji+' '+ex.alias+' — 选择法器</div><button onclick="closeEquipmentPicker()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button></div>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:10px">× 系数代表灵力倍率，自由重量×1.0，固定器械×0.9</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="eq-picker-grid">';
+  filtered.forEach(function(et){
     var sel = item.equipment === et.id ? ' border-color:var(--gold);background:rgba(201,169,110,.12)' : '';
     var color = et.coeff >= 1.0 ? 'var(--gold)' : (et.coeff >= 0.9 ? 'var(--warm)' : 'var(--text2)');
-    html += '<div onclick="selectEquipment('+exIdx+',\''+et.id+'\')" style="padding:10px;border:1px solid rgba(201,169,110,.2);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s'+sel+'">';
-    html += '<div style="font-size:22px;margin-bottom:4px">'+et.icon+'</div>';
-    html += '<div style="font-size:13px;font-weight:600;color:var(--text)">'+et.name+'</div>';
-    html += '<div style="font-size:10px;color:'+color+'">×'+et.coeff+'</div>';
-    html += '</div>';
+    if(et.id === 'custom'){
+      html += '<div id="eq-custom-card" style="padding:10px;border:1px solid rgba(201,169,110,.2);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s;grid-column:1/-1'+sel+'" onclick="showCustomEqInput('+exIdx+')">';
+      html += '<div style="font-size:20px;margin-bottom:2px">🔧</div>';
+      html += '<div style="font-size:13px;font-weight:600;color:var(--text)">自定义法器</div>';
+      html += '</div>';
+    } else {
+      html += '<div onclick="selectEquipment('+exIdx+',\''+et.id+'\')" style="padding:8px;border:1px solid rgba(201,169,110,.2);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s'+sel+'">';
+      html += '<div style="font-size:20px;margin-bottom:2px">'+et.icon+'</div>';
+      html += '<div style="font-size:12px;font-weight:600;color:var(--text)">'+et.name+'</div>';
+      html += '<div style="font-size:10px;color:'+color+'">×'+et.coeff+'</div>';
+      html += '</div>';
+    }
   });
   html += '</div></div>';
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+}
+
+function showCustomEqInput(exIdx){
+  var grid = document.getElementById('eq-picker-grid');
+  var card = document.getElementById('eq-custom-card');
+  if(!grid) return;
+  if(card) card.style.display = 'none';
+  // Remove existing input row
+  var existing = document.getElementById('eq-custom-input-row');
+  if(existing) existing.remove();
+  
+  var row = document.createElement('div');
+  row.id = 'eq-custom-input-row';
+  row.style.cssText = 'grid-column:1/-1;display:flex;gap:6px;align-items:center';
+  row.innerHTML = '<input id="eq-custom-name" type="text" placeholder="输入法器名称（如牛角包、沙袋）" style="flex:1;padding:10px;border:1px solid var(--gold);border-radius:8px;background:var(--card2);color:var(--text);font-size:14px;outline:none;min-height:44px">'
+    + '<button onclick="confirmCustomEq('+exIdx+')" style="padding:10px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-weight:700;cursor:pointer;min-height:44px;white-space:nowrap">确认</button>';
+  grid.appendChild(row);
+  document.getElementById('eq-custom-name').focus();
+}
+
+function confirmCustomEq(exIdx){
+  var input = document.getElementById('eq-custom-name');
+  if(!input) return;
+  var name = input.value.trim();
+  if(!name){ alert('请输入法器名称'); return; }
+  var item = currentTraining[exIdx];
+  if(!item) return;
+  var customId = 'custom_'+name;
+  item.equipment = customId;
+  if(!window._customEquipment) window._customEquipment = {};
+  window._customEquipment[customId] = { name: name, icon: '🔧', coeff: 1.0 };
+  closeEquipmentPicker();
+  renderTrainingList();
+  updateTrainingQiDisplay();
 }
 
 function closeEquipmentPicker(){
