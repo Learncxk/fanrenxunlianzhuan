@@ -2779,6 +2779,37 @@ function addRoutePlanExercises(){
   showToast('📋 已添加今日推荐功法！请根据自身能力调整次数和重量');
 }
 
+function showDayDetail(dateStr){
+  var area = document.getElementById('day-detail-area');
+  if(!area) return;
+  var sessions = appData.sessions.filter(function(s){ return s.date === dateStr; });
+  if(sessions.length === 0){
+    area.innerHTML = '<div style="text-align:center;padding:10px;font-size:12px;color:var(--text2);background:rgba(0,0,0,.1);border-radius:8px;margin-bottom:6px">'+dateStr+' 无训练记录</div>';
+    return;
+  }
+  var html = '<div style="background:rgba(0,0,0,.1);border-radius:8px;padding:10px;margin-bottom:6px">';
+  html += '<div style="font-size:12px;color:var(--gold);margin-bottom:6px">📅 '+dateStr+'</div>';
+  sessions.forEach(function(s, si){
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">修炼记录 #'+(si+1)+' · +'+s.totalQi+' 灵力</div>';
+    s.exercises.forEach(function(item){
+      var ex = appData.exercises[item.exerciseIdx];
+      if(!ex) return;
+      var eqName = '杠铃';
+      EQUIPMENT_TYPES.forEach(function(et){ if(et.id===(item.equipment||'barbell')) eqName=et.name; });
+      html += '<div style="background:rgba(255,255,255,.03);border-radius:6px;padding:6px;margin-bottom:4px">';
+      html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text)">';
+      html += '<span>'+ex.emoji+' '+ex.name+'</span><span style="color:var(--text2);font-size:10px">🔧 '+eqName+'</span></div>';
+      item.sets.forEach(function(set, si2){
+        html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);padding:1px 0">';
+        html += '<span>第'+(si2+1)+'组</span><span>'+(set.weight||'自重')+'kg × '+set.reps+' 次</span></div>';
+      });
+      html += '</div>';
+    });
+  });
+  html += '</div>';
+  area.innerHTML = html;
+}
+
 function selectRoute(id){
   appData.trainingRoute = id;
   saveData();
@@ -2786,7 +2817,7 @@ function selectRoute(id){
   renderRealm();
   const route = ROUTES.find(function(r){ return r.id === id; });
   if(route){
-    showToast('🗺️ 已切换至「' + route.name + '」—— 洞府页面可查看今日建议');
+    showToast('🗺️ 已切换至「' + route.name + '」');
   }
   // If custom route, show editor
   if(id === 'custom'){
@@ -3252,94 +3283,71 @@ function renderAtlas(){
   
   var html = '';
   
-  // Stats overview
-  const realmInfo = getRealmFromQi(appData.totalQi);
-  const totalSessions = appData.sessions.length;
-  const totalRest = appData.totalRestDays || 0;
-  const ratio = totalRest > 0 ? (totalSessions / totalRest).toFixed(1) : totalSessions;
-  
+  // ====== 修炼日志（合并总览+周历+周灵力）======
+  var realmInfo = getRealmFromQi(appData.totalQi);
+  var totalSessions = appData.sessions.length;
+  var totalRest = appData.totalRestDays || 0;
+  // ====== 修炼日志（合并总览+周历+周灵力）======
   html += '<div class="atlas-section">';
-  html += '<h3>📊 修炼总览</h3>';
-  html += '<div class="atlas-stat-row">';
-  html += '<div class="atlas-stat"><div class="as-value">'+appData.totalQi+'</div><div class="as-label">总灵力</div></div>';
-  html += '<div class="atlas-stat"><div class="as-value">'+totalSessions+'</div><div class="as-label">修炼次数</div></div>';
-  html += '<div class="atlas-stat"><div class="as-value">'+totalRest+'</div><div class="as-label">休息日</div></div>';
-  html += '<div class="atlas-stat"><div class="as-value">'+ratio+'</div><div class="as-label">修炼/休息比</div></div>';
-  html += '</div>';
-  if(ratio >= 3 && ratio <= 5){
-    html += '<div style="text-align:center;font-size:12px;color:var(--success)">✅ 修炼休息比在健康范围（3:1 ~ 5:1）</div>';
-  } else if(ratio > 5){
-    html += '<div style="text-align:center;font-size:12px;color:var(--warm)">⚠️ 修炼偏多，建议适当增加休息日</div>';
-  } else if(ratio < 3 && totalSessions > 0){
-    html += '<div style="text-align:center;font-size:12px;color:var(--text2)">修炼强度偏低，道友可多精进</div>';
-  }
-  html += '</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  html += '<h3 style="font-size:16px;color:var(--gold2);margin:0">📋 修炼日志</h3>';
+  html += '<div style="font-size:12px;color:var(--text2)">总灵力 <span style="color:var(--gold-bright);font-weight:600">'+appData.totalQi+'</span> · 修炼 <span style="color:var(--success);font-weight:600">'+totalSessions+'</span> 次</div></div>';
   
-  // Weekly training calendar
-  html += '<div class="atlas-section">';
-  html += '<h3>📋 本周修炼日志</h3>';
   var todayStr = getTodayStr();
   var d = new Date();
-  var dayOfWeek = d.getDay();
-  // Monday = 1, Sunday = 0 → adjust to Mon=0
-  var monOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  var monOffset = d.getDay() === 0 ? 6 : d.getDay() - 1;
   var weekDays = ['周一','周二','周三','周四','周五','周六','周日'];
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px">';
+  
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">';
   for(var wi=0; wi<7; wi++){
-    var dateObj = new Date(d);
-    dateObj.setDate(d.getDate() - monOffset + wi);
+    var dateObj = new Date(d); dateObj.setDate(d.getDate()-monOffset+wi);
     var dateStr = dateObj.toISOString().slice(0,10);
     var isToday = dateStr === todayStr;
-    var daySessions = appData.sessions.filter(function(s){ return s.date === dateStr; });
-    var totalQiDay = 0;
-    daySessions.forEach(function(s){ totalQiDay += s.totalQi || 0; });
+    var daySess = appData.sessions.filter(function(s){ return s.date === dateStr; });
+    var dayQi = 0; daySess.forEach(function(s){ dayQi += s.totalQi || 0; });
     var hasPlan = false;
-    // Check if route plan says we should train today
-    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
-      var plan = getTodayPlanForDate(dateStr);
-      if(plan && plan.exercises && plan.exercises.length > 0) hasPlan = true;
-    }
+    if(appData.trainingRoute && appData.trainingRoute !== 'none'){ var p=getTodayPlanForDate(dateStr); if(p&&p.exercises&&p.exercises.length>0) hasPlan=true; }
     var isFuture = dateStr > todayStr;
-    html += '<div style="text-align:center;padding:6px 2px;border-radius:8px;font-size:11px;'+(isToday?'background:rgba(201,169,110,.15);border:1px solid var(--gold)':'')+'">';
-    html += '<div style="color:var(--text2);margin-bottom:2px">'+weekDays[wi]+'</div>';
-    if(daySessions.length > 0){
-      html += '<div style="color:var(--success);font-weight:700">✅</div>';
-      html += '<div style="color:var(--gold-bright);font-size:10px">+'+totalQiDay+'</div>';
-    } else if(isFuture){
-      if(hasPlan) html += '<div style="color:var(--gold);font-size:10px">📋计划</div>';
-      else html += '<div style="color:var(--text2);font-size:10px">—</div>';
-    } else {
-      if(hasPlan) html += '<div style="color:var(--warm);font-size:10px">⏳未练</div>';
-      else html += '<div style="color:var(--text2);font-size:10px">—</div>';
-    }
+    html += '<div onclick="showDayDetail(\''+dateStr+'\')" style="text-align:center;padding:5px 1px;border-radius:6px;font-size:10px;cursor:pointer;'+(isToday?'background:rgba(201,169,110,.15);border:1px solid var(--gold)':'')+'">';
+    html += '<div style="color:var(--text2)">'+weekDays[wi]+'</div>';
+    if(daySess.length>0) html += '<div style="color:var(--success);font-weight:700">✅</div><div style="color:var(--gold-bright);font-size:9px">+'+dayQi+'</div>';
+    else if(isFuture) html += hasPlan?'<div style="color:var(--gold);font-size:9px">📋</div>':'<div style="color:var(--text2);font-size:9px">—</div>';
+    else html += hasPlan?'<div style="color:var(--warm);font-size:9px">⏳</div>':'<div style="color:var(--text2);font-size:9px">—</div>';
     html += '</div>';
   }
   html += '</div>';
-  // Planned vs actual summary
-  var weekTotalQi = 0;
-  var weekPlanned = 0;
-  var weekActual = 0;
+  
+  var weekTotalQi=0, weekActual=0, weekPlanned=0;
   for(var wi=0; wi<7; wi++){
-    var dateObj = new Date(d);
-    dateObj.setDate(d.getDate() - monOffset + wi);
-    var dateStr = dateObj.toISOString().slice(0,10);
-    var daySessions = appData.sessions.filter(function(s){ return s.date === dateStr; });
-    daySessions.forEach(function(s){ weekTotalQi += s.totalQi || 0; });
-    if(daySessions.length > 0) weekActual++;
-    if(appData.trainingRoute && appData.trainingRoute !== 'none'){
-      var plan = getTodayPlanForDate(dateStr);
-      if(plan && plan.exercises && plan.exercises.length > 0 && dateStr <= todayStr) weekPlanned++;
-    }
+    var dateObj=new Date(d); dateObj.setDate(d.getDate()-monOffset+wi);
+    var dateStr=dateObj.toISOString().slice(0,10);
+    var daySess=appData.sessions.filter(function(s){ return s.date===dateStr; });
+    daySess.forEach(function(s){ weekTotalQi+=s.totalQi||0; });
+    if(daySess.length>0) weekActual++;
+    if(appData.trainingRoute&&appData.trainingRoute!=='none'){var p2=getTodayPlanForDate(dateStr);if(p2&&p2.exercises&&p2.exercises.length>0&&dateStr<=todayStr) weekPlanned++;}
   }
-  if(weekActual > 0 || weekPlanned > 0){
-    html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">';
-    html += '<span>本周修炼 <span style="color:var(--success);font-weight:600">'+weekActual+'</span> 天</span>';
-    if(weekPlanned > 0) html += '<span>计划完成 <span style="color:'+(weekActual>=weekPlanned?'var(--success)':'var(--warm)')+';font-weight:600">'+weekActual+'/'+weekPlanned+'</span></span>';
-    html += '<span>总灵力 <span style="color:var(--gold-bright);font-weight:600">'+weekTotalQi+'</span></span>';
-    html += '</div>';
-  }
+  html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px">';
+  html += '<span>本周训练 <span style="color:var(--success);font-weight:600">'+weekActual+'</span> 天</span>';
+  if(weekPlanned>0) html += '<span>计划 <span style="color:'+(weekActual>=weekPlanned?'var(--success)':'var(--warm)')+';font-weight:600">'+weekActual+'/'+weekPlanned+'</span></span>';
+  var ratio = totalRest>0 ? (totalSessions/totalRest).toFixed(1) : totalSessions;
+  html += '<span>休练比 <span style="color:var(--text2);font-weight:600">1:'+ratio+'</span></span>';
+  html += '<span>总灵力 <span style="color:var(--gold-bright);font-weight:600">'+weekTotalQi+'</span></span>';
   html += '</div>';
-
+  
+  html += '<div id="day-detail-area" style="margin-bottom:6px"></div>';
+  
+  var maxWeekQi=1, weekData=[];
+  for(var w=5; w>=0; w--){
+    var ws=getWeekStart(todayStr,w); var total=0;
+    if(appData.weeklyQiHistory) appData.weeklyQiHistory.forEach(function(wh){ if(wh.week===ws) total+=wh.total; });
+    weekData.push({week:ws,total:total}); if(total>maxWeekQi) maxWeekQi=total;
+  }
+  if(maxWeekQi===0) maxWeekQi=1;
+  html += '<div style="padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">';
+  weekData.forEach(function(wd){
+    html += '<div class="chart-bar-wrap"><div class="chart-label" style="width:48px;font-size:10px">'+wd.week.slice(5)+'</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.max(2,Math.round(wd.total/maxWeekQi*100))+'%"></div></div><div class="chart-bar-value" style="font-size:10px">'+wd.total+'</div></div>';
+  });
+  html += '</div></div>';
   // Timeline (realm breakthroughs)
   html += '<div class="atlas-section">';
   html += '<h3>🏔️ 境界突破时间线</h3>';
