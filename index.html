@@ -221,6 +221,7 @@ body{
 .btn-add-set:hover{background:rgba(201,169,110,.25)}
 .btn-remove{background:rgba(139,0,0,.2);color:#ff6b6b}
 .btn-remove:hover{background:rgba(139,0,0,.35)}
+.btn-complete-set{background:rgba(92,184,92,.15);color:var(--success)}
 .btn-remove-exercise{background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:4px}
 
 .add-exercise-bar{
@@ -556,8 +557,11 @@ body{
       <h2>今日修炼</h2>
       <div class="today-qi">灵力：<span id="training-qi-display">0</span></div>
     </div>
+    <div id="today-sessions"></div>
+    <div id="timer-bar"></div>
     <div id="training-route-plan"></div>
     <div id="muscle-warning-area"></div>
+    <div id="start-workout-area"></div>
     <div class="add-exercise-bar">
       <select id="exercise-select">
         <option value="">选择功法…</option>
@@ -1286,9 +1290,27 @@ function goToTraining(){
 // ===================================================================
 // TRAINING
 // ===================================================================
+// Timer state
+var workoutState = {
+  active: false,
+  startTime: null,
+  restStartTime: null,
+  isResting: false,
+  timerInterval: null,
+  elapsedWorkout: 0,
+  elapsedRest: 0,
+  currentSet: null, // {exIdx, setIdx}
+};
+
 function renderTraining(){
   const today = getTodayStr();
   const hasSessionToday = appData.sessions.some(function(s){ return s.date === today; });
+
+  // Today's completed sessions
+  renderTodaySessions();
+
+  // Timer bar
+  renderTimerBar();
 
   // Route plan recommendation
   const routeArea = document.getElementById('training-route-plan');
@@ -1357,6 +1379,16 @@ function renderTrainingList(){
 
   document.getElementById('end-training-btn').disabled = false;
 
+  // Show start workout button if not active
+  var startBtnArea = document.getElementById('start-workout-area');
+  if(startBtnArea){
+    if(!workoutState.active){
+      startBtnArea.innerHTML = '<button onclick="startWorkout()" style="width:100%;padding:14px;margin-bottom:12px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a2e;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:2px">⚔️ 开始修炼</button>';
+    } else {
+      startBtnArea.innerHTML = '<div style="background:rgba(92,184,92,.08);border:1px solid rgba(92,184,92,.2);border-radius:var(--radius);padding:10px;margin-bottom:12px;text-align:center;font-size:13px;color:var(--success)">⚔️ 修炼进行中 · 完成每组后点击 ✓</div>';
+    }
+  }
+
   currentTraining.forEach((item, idx)=>{
     const ex = appData.exercises[item.exerciseIdx];
     if(!ex) return;
@@ -1364,16 +1396,23 @@ function renderTrainingList(){
     card.className = 'exercise-card';
     let setsHtml = '';
     item.sets.forEach((set, si)=>{
-      setsHtml += `
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
-          <span style="font-size:12px;color:var(--text2);min-width:36px">第${si+1}组</span>
-          <input type="number" value="${set.reps}" min="1" data-e="${idx}" data-s="${si}" data-f="reps" onchange="updateSet(this)" placeholder="次">
-          <label style="font-size:12px;color:var(--text2)">次</label>
-          <input type="number" value="${set.weight}" min="0" step="0.5" data-e="${idx}" data-s="${si}" data-f="weight" onchange="updateSet(this)" placeholder="kg">
-          <label style="font-size:12px;color:var(--text2)">kg</label>
-          <button class="btn-remove" onclick="removeSet(${idx},${si})" style="padding:2px 8px;font-size:12px;border:none;border-radius:4px;background:rgba(139,0,0,.2);color:#ff6b6b;cursor:pointer">✕</button>
-        </div>
-      `;
+      var isDone = set.completed === true;
+      var doneStyle = isDone ? 'opacity:0.6;' : '';
+      setsHtml += '<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px;' + doneStyle + '">';
+      setsHtml += '<span style="font-size:12px;color:var(--text2);min-width:32px">' + (isDone ? '✅' : '第' + (si+1) + '组') + '</span>';
+      if(!isDone){
+        setsHtml += '<input type="number" value="' + set.reps + '" min="1" data-e="' + idx + '" data-s="' + si + '" data-f="reps" onchange="updateSet(this)" placeholder="次" style="width:48px;padding:4px 6px;border:1px solid rgba(201,169,110,.15);border-radius:6px;background:rgba(0,0,0,.3);color:var(--text);font-size:13px;text-align:center;outline:none">';
+        setsHtml += '<label style="font-size:11px;color:var(--text2)">次</label>';
+        setsHtml += '<input type="number" value="' + set.weight + '" min="0" step="0.5" data-e="' + idx + '" data-s="' + si + '" data-f="weight" onchange="updateSet(this)" placeholder="kg" style="width:52px;padding:4px 6px;border:1px solid rgba(201,169,110,.15);border-radius:6px;background:rgba(0,0,0,.3);color:var(--text);font-size:13px;text-align:center;outline:none">';
+        setsHtml += '<label style="font-size:11px;color:var(--text2)">kg</label>';
+        if(workoutState.active){
+          setsHtml += '<button onclick="completeSet(' + idx + ',' + si + ')" style="padding:3px 10px;border:none;border-radius:5px;background:rgba(92,184,92,.2);color:var(--success);font-size:12px;font-weight:600;cursor:pointer">✓</button>';
+        }
+        setsHtml += '<button class="btn-remove" onclick="removeSet(' + idx + ',' + si + ')" style="padding:2px 6px;font-size:11px;border:none;border-radius:4px;background:rgba(139,0,0,.2);color:#ff6b6b;cursor:pointer">✕</button>';
+      } else {
+        setsHtml += '<span style="font-size:12px;color:var(--success)">' + set.reps + '次 × ' + set.weight + 'kg ✓</span>';
+      }
+      setsHtml += '</div>';
     });
 
     card.innerHTML = `
@@ -1432,7 +1471,7 @@ function removeExerciseFromTraining(idx){
 }
 
 function addSet(exIdx){
-  currentTraining[exIdx].sets.push({reps:10, weight:20});
+  currentTraining[exIdx].sets.push({reps:10, weight:20, completed:false});
   renderTraining();
 }
 
@@ -1482,6 +1521,144 @@ function checkMuscleWarning(){
 }
 
 // ===================================================================
+// TODAY SESSIONS + DELETE
+// ===================================================================
+function renderTodaySessions(){
+  const container = document.getElementById('today-sessions');
+  if(!container) return;
+  const today = getTodayStr();
+  var html = '';
+  appData.sessions.forEach(function(s, idx){
+    if(s.date !== today) return;
+    html += '<div style="background:rgba(92,184,92,.06);border:1px solid rgba(92,184,92,.2);border-radius:var(--radius);padding:12px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    html += '<div style="font-size:13px;font-weight:600;color:var(--success)">✅ 已完成修炼 #'+(idx+1)+'</div>';
+    html += '<div style="color:var(--gold-bright);font-weight:700">+'+s.totalQi+' 灵力</div>';
+    html += '</div>';
+    s.exercises.forEach(function(item){
+      const ex = appData.exercises[item.exerciseIdx];
+      if(!ex) return;
+      html += '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0">';
+      html += '<span>'+ex.emoji+' '+ex.name+'</span>';
+      html += '<span>'+item.sets.length+' 组</span></div>';
+    });
+    html += '<button onclick="deleteSession('+idx+')" style="margin-top:6px;padding:4px 12px;border:none;border-radius:6px;background:rgba(139,0,0,.2);color:#ff6b6b;font-size:12px;cursor:pointer">删除此记录（回退灵力）</button>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function deleteSession(sessionIdx){
+  if(!confirm('确认删除此训练记录？灵力将回退 '+appData.sessions[sessionIdx].totalQi+'。')) return;
+  const s = appData.sessions[sessionIdx];
+  if(!s) return;
+  // Roll back Qi
+  appData.totalQi = Math.max(0, appData.totalQi - (s.totalQi || 0));
+  appData.todayQi = Math.max(0, (appData.todayQi || 0) - (s.totalQi || 0));
+  // Remove session
+  appData.sessions.splice(sessionIdx, 1);
+  appData.totalTrainingDays = Math.max(0, appData.totalTrainingDays - 1);
+  saveData();
+  // Refresh
+  renderTodaySessions();
+  renderRealm();
+  updateHeader();
+  renderQuotes();
+  renderWarnings();
+  showToast('🗑️ 已删除记录，灵力已回退');
+}
+
+// ===================================================================
+// WORKOUT TIMER + SET COMPLETION
+// ===================================================================
+function renderTimerBar(){
+  var container = document.getElementById('timer-bar');
+  if(!container) return;
+  var html = '';
+  if(workoutState.active){
+    html += '<div style="background:var(--card);border:1px solid rgba(201,169,110,.15);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<span style="font-size:12px;color:var(--text2)">⏱️ 修炼时长</span>';
+    html += '<span style="font-size:16px;font-weight:700;color:var(--gold-bright)" id="workout-timer">'+formatTime(workoutState.elapsedWorkout)+'</span>';
+    html += '</div>';
+    if(workoutState.isResting){
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.06)">';
+      html += '<span style="font-size:12px;color:var(--warm)">🧘 组间休息</span>';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += '<span style="font-size:16px;font-weight:700;color:var(--warm)" id="rest-timer">'+formatTime(workoutState.elapsedRest)+'</span>';
+      html += '<button onclick="endRest()" style="padding:4px 12px;border:none;border-radius:6px;background:var(--gold);color:#1a1a2e;font-size:12px;font-weight:600;cursor:pointer">继续</button>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function startWorkout(){
+  workoutState.active = true;
+  workoutState.startTime = Date.now();
+  workoutState.elapsedWorkout = 0;
+  workoutState.isResting = false;
+  workoutState.elapsedRest = 0;
+  // Start timer
+  if(workoutState.timerInterval) clearInterval(workoutState.timerInterval);
+  workoutState.timerInterval = setInterval(function(){
+    if(workoutState.active && workoutState.startTime){
+      workoutState.elapsedWorkout = Math.floor((Date.now() - workoutState.startTime) / 1000);
+    }
+    if(workoutState.isResting && workoutState.restStartTime){
+      workoutState.elapsedRest = Math.floor((Date.now() - workoutState.restStartTime) / 1000);
+    }
+    renderTimerBar();
+    var wt = document.getElementById('workout-timer');
+    if(wt) wt.textContent = formatTime(workoutState.elapsedWorkout);
+    var rt = document.getElementById('rest-timer');
+    if(rt) rt.textContent = formatTime(workoutState.elapsedRest);
+  }, 1000);
+  renderTrainingList();
+  showToast('⚔️ 修炼开始！道友请专注每一组动作');
+}
+
+function completeSet(exIdx, setIdx){
+  var item = currentTraining[exIdx];
+  if(!item || !item.sets[setIdx]) return;
+  // Mark set as completed
+  item.sets[setIdx].completed = true;
+  // Start rest timer
+  workoutState.isResting = true;
+  workoutState.restStartTime = Date.now();
+  workoutState.elapsedRest = 0;
+  workoutState.currentSet = { exIdx: exIdx, setIdx: setIdx };
+  renderTrainingList();
+  renderTimerBar();
+  // Check if all sets are completed
+  var allDone = true;
+  currentTraining.forEach(function(item2){
+    item2.sets.forEach(function(set){
+      if(!set.completed) allDone = false;
+    });
+  });
+  if(allDone && currentTraining.length > 0){
+    showToast('🎯 所有组已完成！点击「结束修炼」结算灵力');
+  }
+}
+
+function endRest(){
+  workoutState.isResting = false;
+  workoutState.restStartTime = null;
+  workoutState.elapsedRest = 0;
+  renderTimerBar();
+}
+
+function formatTime(seconds){
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+
+
+// ===================================================================
 // QI FLOAT ANIMATION
 // ===================================================================
 function showQiFloat(amount, x, y){
@@ -1499,6 +1676,16 @@ function showQiFloat(amount, x, y){
 // ===================================================================
 function endTraining(){
   if(currentTraining.length === 0) return;
+
+  // Stop workout timer
+  if(workoutState.timerInterval){
+    clearInterval(workoutState.timerInterval);
+    workoutState.timerInterval = null;
+  }
+  workoutState.active = false;
+  workoutState.isResting = false;
+  workoutState.elapsedWorkout = 0;
+  workoutState.elapsedRest = 0;
 
   const today = getTodayStr();
   let totalQi = 0;
