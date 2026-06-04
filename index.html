@@ -3019,6 +3019,7 @@ function showDayDetail(dateStr){
 
 function selectRoute(id){
   appData.trainingRoute = id;
+  currentTraining = []; // Clear old plan
   saveData();
   renderRoutes();
   renderRealm();
@@ -3515,32 +3516,7 @@ function renderAtlas(){
   }
   html += '</div></div>';
   
-  // Weekly Chart (last 6 weeks)
-  html += '<div class="atlas-section">';
-  html += '<h3>📈 周修炼灵力</h3>';
-  var maxWeekQi = 1;
-  var weekData = [];
-  const today = getTodayStr();
-  for(var w=5; w>=0; w--){
-    const ws = getWeekStart(today, w);
-    var total = 0;
-    if(appData.weeklyQiHistory){
-      appData.weeklyQiHistory.forEach(function(wh){
-        if(wh.week === ws) total += wh.total;
-      });
-    }
-    weekData.push({week:ws, total:total});
-    if(total > maxWeekQi) maxWeekQi = total;
-  }
-  if(maxWeekQi === 0) maxWeekQi = 1;
-  weekData.forEach(function(wd){
-    const pct = Math.max(2, Math.round(wd.total / maxWeekQi * 100));
-    const label = wd.week.slice(5); // MM-DD
-    var dangerMarker = '';
-    // Check if that week had >5 consecutive days (simplified: check consecutive days tracked)
-    html += '<div class="chart-bar-wrap"><div class="chart-label">'+label+'</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+pct+'%"></div></div><div class="chart-bar-value">'+wd.total+'</div></div>';
-  });
-  html += '</div>';
+    // Weekly Chart removed
   
   // Muscle distribution
   html += '<div class="atlas-section">';
