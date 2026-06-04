@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mortal-training-v1';
+const CACHE_NAME = 'mortal-training-v3';
 const BASE = '/fanrenxunlianzhuan';
 
 const PRECACHE_URLS = [
